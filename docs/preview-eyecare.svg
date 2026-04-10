@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" font-family="-apple-system,Segoe UI,sans-serif">
+  <!-- BG -->
+  <rect width="960" height="540" rx="12" fill="#f5f0e8"/>
+  <!-- Top bar -->
+  <rect width="960" height="44" rx="12" fill="#ece7dc"/>
+  <rect y="32" width="960" height="12" fill="#ece7dc"/>
+  <line x1="0" y1="44" x2="960" y2="44" stroke="#d4cfc4" stroke-width="1"/>
+  <text x="16" y="28" fill="#4a7fc4" font-size="14" font-weight="700">&#x25C8; BLE Debugger</text>
+  <!-- Lang toggle -->
+  <rect x="740" y="10" width="80" height="24" rx="6" fill="#f5f0e8" stroke="#d4cfc4"/>
+  <text x="750" y="26" fill="#7a756c" font-size="11">中文</text>
+  <rect x="780" y="10" width="40" height="24" rx="6" fill="#4a7fc4"/>
+  <text x="790" y="26" fill="#fff" font-size="11" font-weight="600">EN</text>
+  <!-- Theme toggle -->
+  <rect x="830" y="10" width="110" height="24" rx="6" fill="#f5f0e8" stroke="#d4cfc4"/>
+  <text x="842" y="26" fill="#7a756c" font-size="11">Dark</text>
+  <rect x="885" y="10" width="55" height="24" rx="6" fill="#4a7fc4"/>
+  <text x="893" y="26" fill="#fff" font-size="11" font-weight="600">Eyecare</text>
+
+  <!-- Panel 1: Devices -->
+  <rect x="0" y="44" width="320" height="496" fill="#f5f0e8"/>
+  <line x1="320" y1="44" x2="320" y2="540" stroke="#d4cfc4"/>
+  <rect x="0" y="44" width="320" height="40" fill="#ece7dc"/>
+  <line x1="0" y1="84" x2="320" y2="84" stroke="#d4cfc4"/>
+  <text x="16" y="69" fill="#7a756c" font-size="12" font-weight="600" letter-spacing="0.5">DEVICES (5)</text>
+  <rect x="228" y="52" width="80" height="26" rx="8" fill="#4a7fc4"/>
+  <text x="243" y="70" fill="#fff" font-size="12" font-weight="600">Start Scan</text>
+  <!-- Device items -->
+  <g transform="translate(8,92)">
+    <rect width="304" height="50" rx="10" fill="rgba(74,127,196,0.12)" stroke="#4a7fc4" stroke-width="1"/>
+    <rect x="8" y="10" width="52" height="28" rx="6" fill="rgba(58,138,69,0.12)"/>
+    <text x="14" y="30" fill="#3a8a45" font-size="11" font-weight="700">-42 dBm</text>
+    <text x="70" y="24" fill="#3b3833" font-size="13" font-weight="600">Mi Band 7</text>
+    <text x="70" y="40" fill="#7a756c" font-size="10" font-family="monospace">E4:F1:23:AB:CD:01</text>
+  </g>
+  <g transform="translate(8,148)">
+    <rect width="304" height="50" rx="10" fill="transparent"/>
+    <rect x="8" y="10" width="52" height="28" rx="6" fill="rgba(168,125,26,0.12)"/>
+    <text x="14" y="30" fill="#a87d1a" font-size="11" font-weight="700">-71 dBm</text>
+    <text x="70" y="24" fill="#3b3833" font-size="13" font-weight="600">ESP32-BLE</text>
+    <text x="70" y="40" fill="#7a756c" font-size="10" font-family="monospace">A0:B1:C2:D3:E4:F5</text>
+  </g>
+  <g transform="translate(8,204)">
+    <rect width="304" height="50" rx="10" fill="transparent"/>
+    <rect x="8" y="10" width="52" height="28" rx="6" fill="rgba(168,125,26,0.12)"/>
+    <text x="14" y="30" fill="#a87d1a" font-size="11" font-weight="700">-75 dBm</text>
+    <text x="70" y="24" fill="#3b3833" font-size="13" font-weight="600">Heart Rate Sensor</text>
+    <text x="70" y="40" fill="#7a756c" font-size="10" font-family="monospace">11:22:33:44:55:66</text>
+  </g>
+  <g transform="translate(8,260)">
+    <rect width="304" height="50" rx="10" fill="transparent"/>
+    <rect x="8" y="10" width="52" height="28" rx="6" fill="rgba(196,74,66,0.12)"/>
+    <text x="14" y="30" fill="#c44a42" font-size="11" font-weight="700">-88 dBm</text>
+    <text x="70" y="24" fill="#3b3833" font-size="13" font-weight="600">Unknown</text>
+    <text x="70" y="40" fill="#7a756c" font-size="10" font-family="monospace">FF:EE:DD:CC:BB:AA</text>
+  </g>
+
+  <!-- Panel 2: Services -->
+  <rect x="320" y="44" width="300" height="496" fill="#f5f0e8"/>
+  <line x1="620" y1="44" x2="620" y2="540" stroke="#d4cfc4"/>
+  <rect x="320" y="44" width="300" height="40" fill="#ece7dc"/>
+  <line x1="320" y1="84" x2="620" y2="84" stroke="#d4cfc4"/>
+  <text x="336" y="69" fill="#7a756c" font-size="12" font-weight="600" letter-spacing="0.5">SERVICES</text>
+  <rect x="538" y="52" width="70" height="26" rx="6" fill="transparent" stroke="#c44a42"/>
+  <text x="544" y="70" fill="#c44a42" font-size="11">Disconnect</text>
+  <!-- Conn status -->
+  <g transform="translate(328,92)">
+    <rect width="284" height="32" rx="10" fill="#ece7dc" stroke="#d4cfc4"/>
+    <circle cx="16" cy="16" r="4" fill="#3a8a45"/>
+    <text x="28" y="20" fill="#3b3833" font-size="12">Connected: E4:F1:23:AB:CD:01</text>
+  </g>
+  <!-- Service groups -->
+  <g transform="translate(328,132)">
+    <rect width="284" height="30" rx="8" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="10" y="20" fill="#4a7fc4" font-size="11" font-family="monospace">Generic Access (1800)</text>
+    <text x="240" y="20" fill="#7a756c" font-size="10">2 chars</text>
+  </g>
+  <g transform="translate(328,170)">
+    <rect width="284" height="30" rx="8" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="10" y="20" fill="#4a7fc4" font-size="11" font-family="monospace">Battery Service (180f)</text>
+    <text x="240" y="20" fill="#7a756c" font-size="10">1 chars</text>
+  </g>
+  <g transform="translate(332,208)">
+    <rect width="280" height="52" rx="8" fill="rgba(74,127,196,0.12)"/>
+    <rect width="3" height="52" rx="1.5" fill="#4a7fc4"/>
+    <text x="14" y="20" fill="#3b3833" font-size="11" font-family="monospace">Battery Level (2a19)</text>
+    <rect x="14" y="28" width="38" height="16" rx="4" fill="rgba(58,138,69,0.12)"/>
+    <text x="19" y="40" fill="#3a8a45" font-size="9" font-weight="600">READ</text>
+    <rect x="58" y="28" width="48" height="16" rx="4" fill="rgba(168,125,26,0.12)"/>
+    <text x="63" y="40" fill="#a87d1a" font-size="9" font-weight="600">NOTIFY</text>
+  </g>
+  <g transform="translate(328,268)">
+    <rect width="284" height="30" rx="8" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="10" y="20" fill="#4a7fc4" font-size="11" font-family="monospace">Custom Service (fff0)</text>
+    <text x="240" y="20" fill="#7a756c" font-size="10">3 chars</text>
+  </g>
+
+  <!-- Panel 3: Data -->
+  <rect x="620" y="44" width="340" height="496" fill="#f5f0e8"/>
+  <rect x="620" y="44" width="340" height="40" fill="#ece7dc"/>
+  <line x1="620" y1="84" x2="960" y2="84" stroke="#d4cfc4"/>
+  <text x="636" y="69" fill="#7a756c" font-size="12" font-weight="600" letter-spacing="0.5">DATA</text>
+  <rect x="880" y="52" width="68" height="26" rx="6" fill="#ece7dc" stroke="#d4cfc4"/>
+  <text x="889" y="70" fill="#3b3833" font-size="11">Clear Log</text>
+
+  <!-- Char detail -->
+  <g transform="translate(628,92)">
+    <rect width="324" height="80" rx="10" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="12" y="24" fill="#4a7fc4" font-size="12" font-family="monospace">0000fff1-0000-1000-8000-00805f9b34fb</text>
+    <rect x="12" y="34" width="38" height="16" rx="4" fill="rgba(58,138,69,0.12)"/>
+    <text x="17" y="46" fill="#3a8a45" font-size="9" font-weight="600">READ</text>
+    <rect x="56" y="34" width="42" height="16" rx="4" fill="rgba(74,127,196,0.12)"/>
+    <text x="61" y="46" fill="#4a7fc4" font-size="9" font-weight="600">WRITE</text>
+    <rect x="104" y="34" width="48" height="16" rx="4" fill="rgba(168,125,26,0.12)"/>
+    <text x="109" y="46" fill="#a87d1a" font-size="9" font-weight="600">NOTIFY</text>
+    <rect x="12" y="56" width="42" height="20" rx="6" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="22" y="70" fill="#3b3833" font-size="10">Read</text>
+    <rect x="60" y="56" width="80" height="20" rx="6" fill="#ece7dc" stroke="#d4cfc4"/>
+    <text x="68" y="70" fill="#3b3833" font-size="10">Start Notify</text>
+  </g>
+
+  <!-- Log section -->
+  <text x="636" y="196" fill="#7a756c" font-size="11" font-weight="600" letter-spacing="0.5">COMMUNICATION LOG</text>
+  <g transform="translate(628,204)">
+    <rect width="324" height="328" rx="10" fill="#ece7dc" stroke="#d4cfc4"/>
+    <g transform="translate(8,8)">
+      <text x="0" y="12" fill="#7a756c" font-size="11" font-family="monospace">14:23:01.234</text>
+      <text x="100" y="12" fill="#3a8a45" font-size="11" font-family="monospace" font-weight="700">RX</text>
+      <text x="124" y="12" fill="#7a756c" font-size="11" font-family="monospace">fff1</text>
+      <text x="160" y="12" fill="#3b3833" font-size="11" font-family="monospace">48 65 6C 6C 6F</text>
+      <text x="248" y="12" fill="#7a756c" font-size="11" font-family="monospace" font-style="italic">"Hello"</text>
+    </g>
+    <line x1="8" y1="26" x2="316" y2="26" stroke="#d4cfc4"/>
+    <g transform="translate(8,32)">
+      <text x="0" y="12" fill="#7a756c" font-size="11" font-family="monospace">14:23:02.567</text>
+      <text x="100" y="12" fill="#4a7fc4" font-size="11" font-family="monospace" font-weight="700">TX</text>
+      <text x="124" y="12" fill="#7a756c" font-size="11" font-family="monospace">fff1</text>
+      <text x="160" y="12" fill="#3b3833" font-size="11" font-family="monospace">01 02 03</text>
+    </g>
+    <line x1="8" y1="50" x2="316" y2="50" stroke="#d4cfc4"/>
+    <g transform="translate(8,56)">
+      <text x="0" y="12" fill="#7a756c" font-size="11" font-family="monospace">14:23:05.891</text>
+      <text x="100" y="12" fill="#a87d1a" font-size="11" font-family="monospace" font-weight="700">NF</text>
+      <text x="124" y="12" fill="#7a756c" font-size="11" font-family="monospace">fff1</text>
+      <text x="160" y="12" fill="#3b3833" font-size="11" font-family="monospace">64 00</text>
+    </g>
+    <line x1="8" y1="74" x2="316" y2="74" stroke="#d4cfc4"/>
+    <g transform="translate(8,80)">
+      <text x="0" y="12" fill="#7a756c" font-size="11" font-family="monospace">14:23:08.123</text>
+      <text x="100" y="12" fill="#3a8a45" font-size="11" font-family="monospace" font-weight="700">RX</text>
+      <text x="124" y="12" fill="#7a756c" font-size="11" font-family="monospace">2a19</text>
+      <text x="160" y="12" fill="#3b3833" font-size="11" font-family="monospace">5F</text>
+    </g>
+  </g>
+
+  <!-- Border -->
+  <rect width="960" height="540" rx="12" fill="none" stroke="#d4cfc4" stroke-width="1"/>
+</svg>
