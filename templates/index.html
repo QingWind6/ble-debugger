@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLE Debugger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+/* ===== Theme: Dark ===== */
+[data-theme="dark"] {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2333; --border: #30363d;
+  --text: #e6edf3; --text2: #8b949e; --text3: #484f58;
+  --accent: #58a6ff; --accent-dim: rgba(88,166,255,0.12);
+  --green: #3fb950; --green-dim: rgba(63,185,80,0.12);
+  --red: #f85149; --red-dim: rgba(248,81,73,0.12);
+  --yellow: #d29922; --yellow-dim: rgba(210,153,34,0.12);
+  --orange: #db6d28; --orange-dim: rgba(219,109,40,0.12);
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+  --scrollbar-thumb: #30363d;
+}
+
+/* ===== Theme: Eye-care (beige) ===== */
+[data-theme="eyecare"] {
+  --bg: #f5f0e8; --surface: #ece7dc; --surface2: #e4dfd4; --border: #d4cfc4;
+  --text: #3b3833; --text2: #7a756c; --text3: #a09b92;
+  --accent: #4a7fc4; --accent-dim: rgba(74,127,196,0.12);
+  --green: #3a8a45; --green-dim: rgba(58,138,69,0.12);
+  --red: #c44a42; --red-dim: rgba(196,74,66,0.12);
+  --yellow: #a87d1a; --yellow-dim: rgba(168,125,26,0.12);
+  --orange: #b5591e; --orange-dim: rgba(181,89,30,0.12);
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+  --scrollbar-thumb: #c9c4b9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px; transition: background 0.3s, color 0.3s;
+}
+
+/* ===== Top bar ===== */
+.topbar {
+  height: 44px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; flex-shrink: 0; z-index: 10;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px;
+  color: var(--accent); letter-spacing: -0.3px;
+}
+.topbar-brand svg { flex-shrink: 0; }
+.topbar-actions { display: flex; align-items: center; gap: 6px; }
+
+.toggle-group {
+  display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  background: var(--bg);
+}
+.toggle-group button {
+  border: none; border-radius: 0; padding: 4px 12px; font-size: 12px;
+  background: transparent; color: var(--text2); cursor: pointer;
+  transition: all 0.15s; font-weight: 500;
+}
+.toggle-group button.active {
+  background: var(--accent); color: #fff; font-weight: 600;
+}
+.toggle-group button:not(.active):hover { color: var(--text); background: var(--surface2); }
+
+/* ===== Layout ===== */
+.app-layout { display: flex; height: calc(100vh - 44px); }
+.panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); transition: background 0.3s; }
+.panel-scan { width: 360px; min-width: 300px; }
+.panel-services { width: 400px; min-width: 320px; flex-shrink: 0; }
+.panel-data { flex: 1; min-width: 400px; }
+.panel-header {
+  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex-shrink: 0;
+}
+.panel-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
+.panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* ===== Buttons ===== */
+button {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  transition: all 0.15s; font-weight: 500;
+}
+button:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow); }
+button.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600;
+  box-shadow: 0 1px 4px rgba(88,166,255,0.3);
+}
+button.primary:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(88,166,255,0.4); }
+button.danger { border-color: var(--red); color: var(--red); }
+button.danger:hover { background: var(--red); color: #fff; }
+button.sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+input, select, textarea {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 10px; border-radius: 8px; font-size: 13px; font-family: inherit;
+  width: 100%; transition: border-color 0.15s;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+/* ===== Device list ===== */
+.device-item {
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  margin-bottom: 4px; transition: all 0.15s;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid transparent;
+}
+.device-item:hover { background: var(--surface); border-color: var(--border); }
+.device-item.selected { background: var(--accent-dim); border-color: var(--accent); }
+.device-rssi {
+  font-size: 11px; font-weight: 700; min-width: 52px; text-align: center;
+  padding: 3px 6px; border-radius: 6px; background: var(--surface);
+}
+.rssi-strong { color: var(--green); background: var(--green-dim) !important; }
+.rssi-medium { color: var(--yellow); background: var(--yellow-dim) !important; }
+.rssi-weak { color: var(--red); background: var(--red-dim) !important; }
+.device-info { flex: 1; overflow: hidden; }
+.device-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-addr { font-size: 11px; color: var(--text2); font-family: 'SF Mono', 'Cascadia Code', monospace; margin-top: 2px; }
+
+/* ===== Connection status ===== */
+.conn-status {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 10px 12px;
+  background: var(--surface); border-radius: 10px; margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conn-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.conn-dot.off { background: var(--text3); }
+
+/* ===== Services tree ===== */
+.service-group { margin-bottom: 6px; }
+.service-header {
+  padding: 9px 12px; background: var(--surface); border-radius: 8px;
+  font-size: 12px; color: var(--accent); font-family: 'SF Mono', 'Cascadia Code', monospace;
+  cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid var(--border); transition: all 0.15s;
+}
+.service-header:hover { background: var(--surface2); }
+.service-header .svc-count { font-size: 11px; color: var(--text2); font-family: inherit; }
+.service-chars { padding-left: 4px; }
+.char-item {
+  padding: 8px 12px 8px 20px; margin: 2px 0; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s; font-size: 12px;
+  border-left: 3px solid transparent;
+}
+.char-item:hover { background: var(--surface); }
+.char-item.selected { background: var(--accent-dim); border-left-color: var(--accent); }
+.char-uuid { font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text); }
+.char-props { margin-top: 5px; display: flex; gap: 4px; flex-wrap: wrap; }
+.prop-tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.prop-tag.read { color: var(--green); background: var(--green-dim); }
+.prop-tag.write { color: var(--accent); background: var(--accent-dim); }
+.prop-tag.write-without-response { color: var(--orange); background: var(--orange-dim); }
+.prop-tag.notify { color: var(--yellow); background: var(--yellow-dim); }
+.prop-tag.indicate { color: var(--yellow); background: var(--yellow-dim); }
+
+/* ===== Data panel ===== */
+.data-section { margin-bottom: 16px; }
+.data-section h3 { font-size: 12px; margin-bottom: 8px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.char-detail-header {
+  padding: 14px; background: var(--surface); border-radius: 10px; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.char-detail-uuid { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
+.action-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+.write-area { margin-top: 12px; }
+.write-area .input-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.write-area textarea { height: 60px; font-family: 'SF Mono', 'Cascadia Code', monospace; resize: vertical; border-radius: 8px; }
+.format-toggle {
+  display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg);
+}
+.format-toggle button {
+  border: none; border-radius: 0; padding: 4px 14px; font-size: 12px;
+  background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.format-toggle button.active { background: var(--accent); color: #fff; }
+
+/* ===== Log ===== */
+.log-container {
+  flex: 1; overflow-y: auto; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px;
+  background: var(--surface); border-radius: 10px; padding: 6px;
+  max-height: calc(100vh - 420px); min-height: 200px;
+  border: 1px solid var(--border);
+}
+.log-entry {
+  padding: 5px 8px; border-bottom: 1px solid var(--border); display: flex; gap: 8px;
+  transition: background 0.1s; border-radius: 4px;
+}
+.log-entry:hover { background: var(--surface2); }
+.log-entry:last-child { border-bottom: none; }
+.log-time { color: var(--text2); flex-shrink: 0; }
+.log-dir { font-weight: 700; min-width: 22px; }
+.log-dir.rx { color: var(--green); }
+.log-dir.tx { color: var(--accent); }
+.log-dir.notify { color: var(--yellow); }
+.log-uuid { color: var(--text2); max-width: 110px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.log-data { color: var(--text); word-break: break-all; flex: 1; }
+.log-text { color: var(--text2); font-style: italic; margin-left: 4px; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+  background: var(--red); color: #fff; border-radius: 10px; font-size: 13px;
+  z-index: 999; animation: slideUp 0.25s ease; box-shadow: var(--shadow-lg);
+  max-width: 400px; word-break: break-word;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.empty-state { color: var(--text2); text-align: center; padding: 40px 20px; font-size: 13px; line-height: 1.6; }
+
+.scanning-indicator {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<!-- ===== Top Bar ===== -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 6.5l11 11M6.5 17.5l11-11M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    </svg>
+    <span>BLE Debugger</span>
+  </div>
+  <div class="topbar-actions">
+    <div class="toggle-group" id="langToggle">
+      <button class="active" onclick="setLang('zh')">中文</button>
+      <button onclick="setLang('en')">EN</button>
+    </div>
+    <div class="toggle-group" id="themeToggle">
+      <button class="active" onclick="setTheme('dark')">
+        <span id="themeDarkLabel">深色</span>
+      </button>
+      <button onclick="setTheme('eyecare')">
+        <span id="themeEyecareLabel">护眼</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Main Layout ===== -->
+<div class="app-layout">
+  <!-- Panel 1: Scan -->
+  <div class="panel panel-scan">
+    <div class="panel-header">
+      <h2><span data-i18n="devices">设备</span> <span id="deviceCount" style="color:var(--text3);font-weight:400"></span></h2>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span id="scanIndicator" style="display:none"><span class="scanning-indicator"></span></span>
+        <button id="btnScan" class="primary" onclick="toggleScan()" data-i18n="startScan">开始扫描</button>
+      </div>
+    </div>
+    <div class="panel-body" id="deviceList">
+      <div class="empty-state" data-i18n="emptyScan">点击「开始扫描」发现 BLE 设备</div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Services -->
+  <div class="panel panel-services">
+    <div class="panel-header">
+      <h2 data-i18n="services">服务</h2>
+      <button id="btnDisconnect" class="danger sm" onclick="disconnectDevice()" style="display:none" data-i18n="disconnect">断开连接</button>
+    </div>
+    <div class="panel-body">
+      <div id="connStatus" class="conn-status" style="display:none">
+        <span class="conn-dot" id="connDot"></span>
+        <span id="connLabel" data-i18n="disconnected">未连接</span>
+      </div>
+      <div id="serviceList">
+        <div class="empty-state" data-i18n="emptyService">选择一个设备进行连接</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3: Data -->
+  <div class="panel panel-data" style="border-right:none">
+    <div class="panel-header">
+      <h2 data-i18n="data">数据</h2>
+      <div style="display:flex;gap:6px">
+        <button class="sm" onclick="clearLog()" data-i18n="clearLog">清空日志</button>
+      </div>
+    </div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:12px">
+      <!-- Characteristic detail -->
+      <div id="charDetail" style="display:none">
+        <div class="char-detail-header">
+          <div class="char-detail-uuid" id="detailUuid"></div>
+          <div class="char-props" id="detailProps"></div>
+          <div class="action-row" id="actionRow"></div>
+        </div>
+
+        <!-- Write area -->
+        <div class="write-area" id="writeArea" style="display:none">
+          <div class="data-section">
+            <h3 data-i18n="writeData">写入数据</h3>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <div class="format-toggle">
+                <button id="fmtHex" class="active" onclick="setFormat('hex')">HEX</button>
+                <button id="fmtText" onclick="setFormat('text')">TEXT</button>
+              </div>
+              <select id="writeType" style="width:auto">
+                <option value="with_response" data-i18n="writeWithResp">有响应写入</option>
+                <option value="without_response" data-i18n="writeNoResp">无响应写入</option>
+              </select>
+            </div>
+            <div class="input-row">
+              <textarea id="writeInput" data-i18n-placeholder="hexPlaceholder" placeholder="输入十六进制字节 (如 48 65 6C 6C 6F) 或文本..."></textarea>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="primary" onclick="writeData()" data-i18n="send">发送</button>
+              <span style="font-size:11px;color:var(--text2)" data-i18n="sendHint">Enter 发送 / Shift+Enter 换行</span>
+              <span id="writeHint" style="font-size:11px;color:var(--text2)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="data-section" style="flex:1;display:flex;flex-direction:column">
+        <h3 data-i18n="commLog">通讯日志</h3>
+        <div class="log-container" id="logContainer">
+          <div class="empty-state" data-i18n="emptyLog">暂无数据</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== i18n =====
+const I18N = {
+  zh: {
+    devices: '设备', startScan: '开始扫描', stopScan: '停止扫描',
+    emptyScan: '点击「开始扫描」发现 BLE 设备', noDevices: '未发现设备',
+    services: '服务', disconnect: '断开连接', disconnected: '未连接',
+    emptyService: '选择一个设备进行连接', connecting: '正在连接',
+    connected: '已连接',
+    data: '数据', clearLog: '清空日志', writeData: '写入数据',
+    writeWithResp: '有响应写入', writeNoResp: '无响应写入',
+    hexPlaceholder: '输入十六进制字节 (如 48 65 6C 6C 6F) 或文本...',
+    textPlaceholder: '输入文本 (如 Hello)',
+    send: '发送', sendHint: 'Enter 发送 / Shift+Enter 换行',
+    commLog: '通讯日志', emptyLog: '暂无数据',
+    read: '读取', startNotify: '开启通知', stopNotify: '停止通知',
+    readDesc: '读描述符',
+    noServices: '未发现服务', chars: '个特征',
+    themeDark: '深色', themeEyecare: '护眼',
+    invalidHex: '无效的十六进制格式',
+  },
+  en: {
+    devices: 'Devices', startScan: 'Start Scan', stopScan: 'Stop Scan',
+    emptyScan: 'Click "Start Scan" to discover BLE devices', noDevices: 'No devices found',
+    services: 'Services', disconnect: 'Disconnect', disconnected: 'Disconnected',
+    emptyService: 'Select a device to connect', connecting: 'Connecting',
+    connected: 'Connected',
+    data: 'Data', clearLog: 'Clear Log', writeData: 'Write Data',
+    writeWithResp: 'Write with Response', writeNoResp: 'Write without Response',
+    hexPlaceholder: 'Enter hex bytes (e.g. 48 65 6C 6C 6F) or text...',
+    textPlaceholder: 'Enter text (e.g. Hello)',
+    send: 'Send', sendHint: 'Enter send / Shift+Enter newline',
+    commLog: 'Communication Log', emptyLog: 'No data yet',
+    read: 'Read', startNotify: 'Start Notify', stopNotify: 'Stop Notify',
+    readDesc: 'Read Desc',
+    noServices: 'No services found', chars: 'chars',
+    themeDark: 'Dark', themeEyecare: 'Eyecare',
+    invalidHex: 'Invalid hex format',
+  }
+};
+
+let currentLang = localStorage.getItem('ble-lang') || 'zh';
+let currentTheme = localStorage.getItem('ble-theme') || 'dark';
+
+function t(key) { return I18N[currentLang][key] || key; }
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('ble-lang', lang);
+  // Update toggle buttons
+  const btns = document.querySelectorAll('#langToggle button');
+  btns[0].className = lang === 'zh' ? 'active' : '';
+  btns[1].className = lang === 'en' ? 'active' : '';
+  applyI18n();
+  // Re-render dynamic content
+  if (services.length) renderServices(services);
+  if (selectedChar) renderActions();
+  renderLog();
+  // Update scan button
+  document.getElementById('btnScan').textContent = isScanning ? t('stopScan') : t('startScan');
+  // Theme labels
+  document.getElementById('themeDarkLabel').textContent = t('themeDark');
+  document.getElementById('themeEyecareLabel').textContent = t('themeEyecare');
+  // Update device list if we have devices cached
+  if (lastDevices) renderDevices(lastDevices);
+  // Update write type dropdown
+  const opts = document.getElementById('writeType').options;
+  opts[0].textContent = t('writeWithResp');
+  opts[1].textContent = t('writeNoResp');
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (I18N[currentLang][key]) el.placeholder = I18N[currentLang][key];
+  });
+}
+
+function setTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('ble-theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  const btns = document.querySelectorAll('#themeToggle button');
+  btns[0].className = theme === 'dark' ? 'active' : '';
+  btns[1].className = theme === 'eyecare' ? 'active' : '';
+}
+
+// Apply saved settings on load
+document.documentElement.setAttribute('data-theme', currentTheme);
+
+// ===== Socket & State =====
+const socket = io();
+let isScanning = false;
+let selectedDevice = null;
+let selectedChar = null;
+let writeFormat = 'hex';
+let notifyEnabled = {};
+let services = [];
+let lastDevices = null;
+
+// --- Socket events ---
+socket.on('scan_results', (data) => {
+  lastDevices = data.devices;
+  renderDevices(data.devices);
+});
+
+socket.on('scan_status', (data) => {
+  isScanning = data.scanning;
+  document.getElementById('btnScan').textContent = isScanning ? t('stopScan') : t('startScan');
+  document.getElementById('btnScan').className = isScanning ? 'danger' : 'primary';
+  document.getElementById('scanIndicator').style.display = isScanning ? '' : 'none';
+});
+
+socket.on('connected', (data) => {
+  services = data.services;
+  document.getElementById('connStatus').style.display = '';
+  document.getElementById('connDot').className = 'conn-dot on';
+  document.getElementById('connLabel').textContent = t('connected') + ': ' + data.address;
+  document.getElementById('btnDisconnect').style.display = '';
+  renderServices(data.services);
+});
+
+socket.on('disconnected', () => {
+  document.getElementById('connDot').className = 'conn-dot off';
+  document.getElementById('connLabel').textContent = t('disconnected');
+  document.getElementById('btnDisconnect').style.display = 'none';
+  document.getElementById('serviceList').innerHTML = `<div class="empty-state">${t('emptyService')}</div>`;
+  document.getElementById('charDetail').style.display = 'none';
+  notifyEnabled = {};
+  selectedChar = null;
+  services = [];
+});
+
+socket.on('char_value', (data) => { addLog('RX', data.uuid, data.value, data.timestamp); });
+socket.on('write_ok', (data) => { addLog('TX', data.uuid, data.value, data.timestamp); });
+socket.on('notification', (data) => { addLog('NOTIFY', data.uuid, data.value, data.timestamp); });
+
+socket.on('notify_status', (data) => {
+  notifyEnabled[data.uuid] = data.enabled;
+  if (selectedChar && selectedChar === data.uuid) renderActions();
+});
+
+socket.on('descriptor_value', (data) => {
+  addLog('RX', `desc:${data.handle}`, data.value, new Date().toTimeString().slice(0,12));
+});
+
+socket.on('error', (data) => { showToast(data.message); });
+
+// --- Scanning ---
+function toggleScan() {
+  socket.emit(isScanning ? 'stop_scan' : 'start_scan');
+}
+
+function renderDevices(devices) {
+  const el = document.getElementById('deviceList');
+  document.getElementById('deviceCount').textContent = `(${devices.length})`;
+  if (devices.length === 0) {
+    el.innerHTML = `<div class="empty-state">${t('noDevices')}</div>`;
+    return;
+  }
+  el.innerHTML = devices.map(d => {
+    const rssiClass = d.rssi > -60 ? 'rssi-strong' : d.rssi > -80 ? 'rssi-medium' : 'rssi-weak';
+    const sel = selectedDevice === d.address ? 'selected' : '';
+    return `<div class="device-item ${sel}" onclick="connectDevice('${d.address}')">
+      <div class="device-rssi ${rssiClass}">${d.rssi} dBm</div>
+      <div class="device-info">
+        <div class="device-name">${escHtml(d.name)}</div>
+        <div class="device-addr">${d.address}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// --- Connection ---
+function connectDevice(address) {
+  selectedDevice = address;
+  document.getElementById('serviceList').innerHTML = `<div class="empty-state">${t('connecting')}...</div>`;
+  document.getElementById('connStatus').style.display = '';
+  document.getElementById('connDot').className = 'conn-dot off';
+  document.getElementById('connLabel').textContent = t('connecting') + ' ' + address + '...';
+  socket.emit('connect_device', { address });
+}
+
+function disconnectDevice() { socket.emit('disconnect_device'); }
+
+// --- Services ---
+function renderServices(svcs) {
+  const el = document.getElementById('serviceList');
+  if (!svcs.length) {
+    el.innerHTML = `<div class="empty-state">${t('noServices')}</div>`;
+    return;
+  }
+  el.innerHTML = svcs.map((svc) => {
+    const shortUuid = shortName(svc.uuid);
+    const chars = svc.characteristics.map(ch => {
+      const sel = selectedChar === ch.uuid ? 'selected' : '';
+      return `<div class="char-item ${sel}" onclick="selectChar('${ch.uuid}')">
+        <div class="char-uuid">${shortName(ch.uuid)}</div>
+        <div class="char-props">
+          ${ch.properties.map(p => `<span class="prop-tag ${p}">${p}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="service-group">
+      <div class="service-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+        <span>${shortUuid}</span>
+        <span class="svc-count">${svc.characteristics.length} ${t('chars')}</span>
+      </div>
+      <div class="service-chars">${chars}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectChar(uuid) {
+  selectedChar = uuid;
+  renderServices(services);
+  document.getElementById('charDetail').style.display = '';
+  document.getElementById('detailUuid').textContent = uuid;
+
+  const char = findChar(uuid);
+  if (!char) return;
+  document.getElementById('detailProps').innerHTML = char.properties.map(p =>
+    `<span class="prop-tag ${p}">${p}</span>`
+  ).join('');
+
+  renderActions();
+  const canWrite = char.properties.some(p => p.includes('write'));
+  document.getElementById('writeArea').style.display = canWrite ? '' : 'none';
+}
+
+function renderActions() {
+  const char = findChar(selectedChar);
+  if (!char) return;
+  const row = document.getElementById('actionRow');
+  let btns = '';
+  if (char.properties.includes('read')) {
+    btns += `<button class="sm" onclick="readChar('${char.uuid}')">${t('read')}</button>`;
+  }
+  if (char.properties.includes('notify') || char.properties.includes('indicate')) {
+    const en = notifyEnabled[char.uuid];
+    btns += `<button class="sm ${en?'danger':''}" onclick="toggleNotify('${char.uuid}', ${!en})">${en ? t('stopNotify') : t('startNotify')}</button>`;
+  }
+  if (char.descriptors && char.descriptors.length) {
+    char.descriptors.forEach(d => {
+      btns += `<button class="sm" onclick="readDescriptor(${d.handle})" title="${d.uuid}">${t('readDesc')} ${shortName(d.uuid)}</button>`;
+    });
+  }
+  row.innerHTML = btns;
+}
+
+function findChar(uuid) {
+  for (const svc of services) {
+    for (const ch of svc.characteristics) {
+      if (ch.uuid === uuid) return ch;
+    }
+  }
+  return null;
+}
+
+// --- Read / Write / Notify ---
+function readChar(uuid) { socket.emit('read_char', { uuid }); }
+function toggleNotify(uuid, enable) { socket.emit('toggle_notify', { uuid, enable }); }
+function readDescriptor(handle) { socket.emit('read_descriptor', { handle }); }
+
+function writeData() {
+  if (!selectedChar) return;
+  const raw = document.getElementById('writeInput').value;
+  if (!raw.trim()) return;
+
+  let hexValue;
+  if (writeFormat === 'hex') {
+    hexValue = raw.trim().replace(/\s+/g, '').replace(/0x/gi, '');
+    if (!/^[0-9a-fA-F]*$/.test(hexValue) || hexValue.length % 2 !== 0) {
+      showToast(t('invalidHex'));
+      return;
+    }
+  } else {
+    hexValue = Array.from(new TextEncoder().encode(raw)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  socket.emit('write_char', { uuid: selectedChar, value: hexValue, type: document.getElementById('writeType').value });
+}
+
+// --- Format ---
+function setFormat(fmt) {
+  const inputEl = document.getElementById('writeInput');
+  const currentVal = inputEl.value;
+  if (fmt === writeFormat) return;
+
+  if (currentVal) {
+    if (writeFormat === 'hex' && fmt === 'text') {
+      const hex = currentVal.trim().replace(/\s+/g, '').replace(/0x/gi, '');
+      if (/^[0-9a-fA-F]*$/.test(hex) && hex.length % 2 === 0) inputEl.value = hexToText(hex);
+    } else if (writeFormat === 'text' && fmt === 'hex') {
+      inputEl.value = Array.from(new TextEncoder().encode(currentVal)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    }
+  }
+
+  writeFormat = fmt;
+  document.getElementById('fmtHex').className = fmt === 'hex' ? 'active' : '';
+  document.getElementById('fmtText').className = fmt === 'text' ? 'active' : '';
+  inputEl.placeholder = fmt === 'hex' ? t('hexPlaceholder') : t('textPlaceholder');
+  updateWriteHint();
+}
+
+function updateWriteHint() {
+  const raw = document.getElementById('writeInput').value;
+  const hint = document.getElementById('writeHint');
+  if (!raw.trim()) { hint.textContent = ''; return; }
+
+  if (writeFormat === 'hex') {
+    const hex = raw.trim().replace(/\s+/g, '').replace(/0x/gi, '');
+    if (/^[0-9a-fA-F]*$/.test(hex) && hex.length % 2 === 0) {
+      hint.textContent = `Text: "${hexToText(hex)}" (${hex.length/2} bytes)`;
+    } else {
+      hint.textContent = t('invalidHex');
+      hint.style.color = 'var(--red)';
+      return;
+    }
+  } else {
+    const bytes = new TextEncoder().encode(raw);
+    hint.textContent = `Hex: ${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')} (${bytes.length} bytes)`;
+  }
+  hint.style.color = 'var(--text2)';
+}
+
+const writeInputEl = document.getElementById('writeInput');
+writeInputEl?.addEventListener('input', updateWriteHint);
+writeInputEl?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); writeData(); }
+});
+
+// --- Log ---
+let logEntries = [];
+function addLog(direction, uuid, hexValue, timestamp) {
+  const text = hexToText(hexValue);
+  const printable = isPrintable(text);
+  logEntries.push({ direction, uuid, hexValue, text, printable, timestamp });
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('logContainer');
+  if (!logEntries.length) {
+    el.innerHTML = `<div class="empty-state">${t('emptyLog')}</div>`;
+    return;
+  }
+  el.innerHTML = logEntries.map(e => {
+    const dirClass = e.direction === 'TX' ? 'tx' : e.direction === 'NOTIFY' ? 'notify' : 'rx';
+    const label = e.direction === 'NOTIFY' ? 'NF' : e.direction;
+    const textPart = e.printable ? `<span class="log-text">"${escHtml(e.text)}"</span>` : '';
+    return `<div class="log-entry">
+      <span class="log-time">${e.timestamp}</span>
+      <span class="log-dir ${dirClass}">${label}</span>
+      <span class="log-uuid" title="${e.uuid}">${shortName(e.uuid)}</span>
+      <span class="log-data">${formatHex(e.hexValue)}${textPart}</span>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() { logEntries = []; renderLog(); }
+
+// --- Utils ---
+function hexToText(hex) {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i, 2), 16));
+  try { return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes)); } catch { return ''; }
+}
+function isPrintable(str) { return str.length > 0 && /^[\x20-\x7E\u4e00-\u9fff\u00a0-\u00ff\n\r\t]+$/.test(str); }
+function formatHex(hex) { return hex.match(/.{1,2}/g)?.join(' ').toUpperCase() || hex.toUpperCase(); }
+
+function shortName(uuid) {
+  const known = {
+    '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
+    '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
+    '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
+    '0000180f-0000-1000-8000-00805f9b34fb': 'Battery Service',
+    '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
+    '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
+    '00002a19-0000-1000-8000-00805f9b34fb': 'Battery Level',
+    '00002a29-0000-1000-8000-00805f9b34fb': 'Manufacturer',
+    '00002902-0000-1000-8000-00805f9b34fb': 'CCCD',
+  };
+  if (known[uuid]) return `${known[uuid]} (${uuid.slice(4,8)})`;
+  if (uuid.endsWith('-0000-1000-8000-00805f9b34fb')) return `0x${uuid.slice(4,8).toUpperCase()}`;
+  return uuid;
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ===== Init =====
+(function init() {
+  setTheme(currentTheme);
+  setLang(currentLang);
+})();
+</script>
+</body>
+</html>
