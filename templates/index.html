@@ -6,240 +6,237 @@
 <title>BLE Debugger</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <style>
-/* ===== Theme: Dark ===== */
-[data-theme="dark"] {
-  --bg: #0d1117; --surface: #161b22; --surface2: #1c2333; --border: #30363d;
-  --text: #e6edf3; --text2: #8b949e; --text3: #484f58;
-  --accent: #58a6ff; --accent-dim: rgba(88,166,255,0.12);
-  --green: #3fb950; --green-dim: rgba(63,185,80,0.12);
-  --red: #f85149; --red-dim: rgba(248,81,73,0.12);
-  --yellow: #d29922; --yellow-dim: rgba(210,153,34,0.12);
-  --orange: #db6d28; --orange-dim: rgba(219,109,40,0.12);
-  --shadow: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
-  --scrollbar-thumb: #30363d;
+/* ===== Modern UI Theme System ===== */
+:root {
+  --font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, 'PingFang SC', sans-serif;
+  --transition-speed: 0.2s;
 }
 
-/* ===== Theme: Eye-care (beige) ===== */
+[data-theme="dark"] {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --border: #334155;
+  --text: #f8fafc; --text2: #94a3b8; --text3: #64748b;
+  --accent: #3b82f6; --accent-hover: #2563eb; --accent-dim: rgba(59, 130, 246, 0.15);
+  --green: #10b981; --green-dim: rgba(16, 185, 129, 0.15);
+  --red: #ef4444; --red-dim: rgba(239, 68, 68, 0.15);
+  --yellow: #f59e0b; --yellow-dim: rgba(245, 158, 11, 0.15);
+  --orange: #f97316; --orange-dim: rgba(249, 115, 22, 0.15);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb: #475569;
+}
+
 [data-theme="eyecare"] {
-  --bg: #f5f0e8; --surface: #ece7dc; --surface2: #e4dfd4; --border: #d4cfc4;
-  --text: #3b3833; --text2: #7a756c; --text3: #a09b92;
-  --accent: #4a7fc4; --accent-dim: rgba(74,127,196,0.12);
-  --green: #3a8a45; --green-dim: rgba(58,138,69,0.12);
-  --red: #c44a42; --red-dim: rgba(196,74,66,0.12);
-  --yellow: #a87d1a; --yellow-dim: rgba(168,125,26,0.12);
-  --orange: #b5591e; --orange-dim: rgba(181,89,30,0.12);
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
-  --scrollbar-thumb: #c9c4b9;
+  --bg: #fdfbf7; --surface: #f3f0e8; --surface2: #e8e4db; --border: #dfdbd1;
+  --text: #334155; --text2: #64748b; --text3: #94a3b8;
+  --accent: #0284c7; --accent-hover: #0369a1; --accent-dim: rgba(2, 132, 199, 0.1);
+  --green: #059669; --green-dim: rgba(5, 150, 105, 0.1);
+  --red: #dc2626; --red-dim: rgba(220, 38, 38, 0.1);
+  --yellow: #d97706; --yellow-dim: rgba(217, 119, 6, 0.1);
+  --orange: #ea580c; --orange-dim: rgba(234, 88, 12, 0.1);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb: #cbd5e1;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: var(--bg); color: var(--text);
-  font-family: -apple-system, 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 14px; transition: background 0.3s, color 0.3s;
+  font-family: var(--font-family);
+  font-size: 14px; transition: background var(--transition-speed), color var(--transition-speed);
+  overflow: hidden;
 }
 
 /* ===== Top bar ===== */
 .topbar {
-  height: 44px; background: var(--surface); border-bottom: 1px solid var(--border);
+  height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; flex-shrink: 0; z-index: 10;
+  padding: 0 20px; flex-shrink: 0; z-index: 10;
 }
 .topbar-brand {
-  display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px;
-  color: var(--accent); letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px;
+  color: var(--accent); letter-spacing: -0.2px;
 }
-.topbar-brand svg { flex-shrink: 0; }
-.topbar-actions { display: flex; align-items: center; gap: 6px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
 
 .toggle-group {
-  display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-  background: var(--bg);
+  display: flex; background: var(--surface2); border-radius: 8px; overflow: hidden; padding: 2px;
 }
 .toggle-group button {
-  border: none; border-radius: 0; padding: 4px 12px; font-size: 12px;
+  border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px;
   background: transparent; color: var(--text2); cursor: pointer;
-  transition: all 0.15s; font-weight: 500;
+  transition: all var(--transition-speed); font-weight: 600;
 }
-.toggle-group button.active {
-  background: var(--accent); color: #fff; font-weight: 600;
-}
-.toggle-group button:not(.active):hover { color: var(--text); background: var(--surface2); }
+.toggle-group button.active { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+.toggle-group button:not(.active):hover { color: var(--text); }
 
 /* ===== Layout ===== */
-.app-layout { display: flex; height: calc(100vh - 44px); }
-.panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); transition: background 0.3s; }
-.panel-scan { width: 360px; min-width: 300px; }
-.panel-services { width: 400px; min-width: 320px; flex-shrink: 0; }
-.panel-data { flex: 1; min-width: 400px; }
+.app-layout { display: flex; height: calc(100vh - 52px); }
+.panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); transition: background var(--transition-speed); }
+.panel-scan { width: 340px; min-width: 300px; background: var(--bg); }
+.panel-services { width: 380px; min-width: 320px; flex-shrink: 0; background: var(--surface); }
+.panel-data { flex: 1; min-width: 450px; background: var(--bg); }
 .panel-header {
-  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  flex-shrink: 0;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0;
 }
-.panel-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
-.panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+.panel-header h2 { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.2px; }
+.panel-body { flex: 1; overflow-y: auto; padding: 12px; }
 
 /* ===== Buttons ===== */
 button {
-  background: var(--surface); color: var(--text); border: 1px solid var(--border);
-  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
-  transition: all 0.15s; font-weight: 500;
+  background: var(--surface2); color: var(--text); border: 1px solid transparent;
+  padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  transition: all var(--transition-speed); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-button:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow); }
-button.primary {
-  background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600;
-  box-shadow: 0 1px 4px rgba(88,166,255,0.3);
-}
-button.primary:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(88,166,255,0.4); }
-button.danger { border-color: var(--red); color: var(--red); }
+button:hover { filter: brightness(1.1); box-shadow: var(--shadow); }
+button:active { transform: translateY(1px); }
+button.primary { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+button.primary:hover { background: var(--accent-hover); }
+button.danger { background: var(--red-dim); color: var(--red); border: 1px solid transparent; }
 button.danger:hover { background: var(--red); color: #fff; }
-button.sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
-button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
 input, select, textarea {
-  background: var(--bg); color: var(--text); border: 1px solid var(--border);
-  padding: 6px 10px; border-radius: 8px; font-size: 13px; font-family: inherit;
-  width: 100%; transition: border-color 0.15s;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; font-family: inherit;
+  width: 100%; transition: all var(--transition-speed);
 }
-input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
 /* ===== Device list ===== */
 .device-item {
-  padding: 10px 12px; border-radius: 10px; cursor: pointer;
-  margin-bottom: 4px; transition: all 0.15s;
-  display: flex; align-items: center; gap: 10px;
-  border: 1px solid transparent;
+  padding: 12px 14px; border-radius: 12px; cursor: pointer; margin-bottom: 8px;
+  transition: all var(--transition-speed); display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--border); background: var(--surface);
 }
-.device-item:hover { background: var(--surface); border-color: var(--border); }
+.device-item:hover { transform: translateY(-1px); box-shadow: var(--shadow); border-color: var(--accent-dim); }
 .device-item.selected { background: var(--accent-dim); border-color: var(--accent); }
 .device-rssi {
-  font-size: 11px; font-weight: 700; min-width: 52px; text-align: center;
-  padding: 3px 6px; border-radius: 6px; background: var(--surface);
+  font-size: 12px; font-weight: 700; width: 48px; text-align: center;
+  padding: 4px 0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.rssi-strong { color: var(--green); background: var(--green-dim) !important; }
-.rssi-medium { color: var(--yellow); background: var(--yellow-dim) !important; }
-.rssi-weak { color: var(--red); background: var(--red-dim) !important; }
+.rssi-strong { color: var(--green); background: var(--green-dim); }
+.rssi-medium { color: var(--yellow); background: var(--yellow-dim); }
+.rssi-weak { color: var(--red); background: var(--red-dim); }
 .device-info { flex: 1; overflow: hidden; }
-.device-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.device-addr { font-size: 11px; color: var(--text2); font-family: 'SF Mono', 'Cascadia Code', monospace; margin-top: 2px; }
+.device-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-addr { font-size: 11px; color: var(--text2); font-family: 'SF Mono', monospace; margin-top: 4px; }
 
 /* ===== Connection status ===== */
 .conn-status {
-  display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 10px 12px;
-  background: var(--surface); border-radius: 10px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600;
+  padding: 12px 16px; background: var(--bg); border-radius: 12px; margin-bottom: 16px;
   border: 1px solid var(--border);
 }
-.conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conn-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .conn-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
 .conn-dot.off { background: var(--text3); }
+.conn-dot.loading {
+  background: transparent; border: 2px solid var(--accent-dim); border-top-color: var(--accent);
+  animation: spin 1s linear infinite; box-shadow: none;
+}
 
 /* ===== Services tree ===== */
-.service-group { margin-bottom: 6px; }
+.service-group { margin-bottom: 8px; }
 .service-header {
-  padding: 9px 12px; background: var(--surface); border-radius: 8px;
-  font-size: 12px; color: var(--accent); font-family: 'SF Mono', 'Cascadia Code', monospace;
+  padding: 10px 14px; background: var(--surface2); border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: var(--text); font-family: 'SF Mono', monospace;
   cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between;
-  border: 1px solid var(--border); transition: all 0.15s;
+  border: 1px solid transparent; transition: all var(--transition-speed);
 }
-.service-header:hover { background: var(--surface2); }
-.service-header .svc-count { font-size: 11px; color: var(--text2); font-family: inherit; }
-.service-chars { padding-left: 4px; }
+.service-header:hover { border-color: var(--border); filter: brightness(1.05); }
+.service-header .svc-count { font-size: 11px; color: var(--text2); font-family: var(--font-family); font-weight: 500; }
+.service-chars { padding: 4px 0 4px 8px; }
 .char-item {
-  padding: 8px 12px 8px 20px; margin: 2px 0; border-radius: 8px;
-  cursor: pointer; transition: all 0.15s; font-size: 12px;
-  border-left: 3px solid transparent;
+  padding: 10px 12px; margin: 4px 0; border-radius: 8px; cursor: pointer;
+  transition: all var(--transition-speed); font-size: 12px;
+  border-left: 3px solid transparent; background: transparent;
 }
-.char-item:hover { background: var(--surface); }
+.char-item:hover { background: var(--surface2); }
 .char-item.selected { background: var(--accent-dim); border-left-color: var(--accent); }
-.char-uuid { font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text); }
-.char-props { margin-top: 5px; display: flex; gap: 4px; flex-wrap: wrap; }
+.char-uuid { font-family: 'SF Mono', monospace; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.char-props { display: flex; gap: 6px; flex-wrap: wrap; }
 .prop-tag {
-  font-size: 10px; padding: 2px 7px; border-radius: 4px;
-  font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+  font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase;
 }
 .prop-tag.read { color: var(--green); background: var(--green-dim); }
 .prop-tag.write { color: var(--accent); background: var(--accent-dim); }
 .prop-tag.write-without-response { color: var(--orange); background: var(--orange-dim); }
 .prop-tag.notify { color: var(--yellow); background: var(--yellow-dim); }
-.prop-tag.indicate { color: var(--yellow); background: var(--yellow-dim); }
 
 /* ===== Data panel ===== */
-.data-section { margin-bottom: 16px; }
-.data-section h3 { font-size: 12px; margin-bottom: 8px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-.char-detail-header {
-  padding: 14px; background: var(--surface); border-radius: 10px; margin-bottom: 12px;
-  border: 1px solid var(--border);
-}
-.char-detail-uuid { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
-.action-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.data-section { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; }
+.data-section h3 { font-size: 13px; color: var(--text); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
-.write-area { margin-top: 12px; }
-.write-area .input-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
-.write-area textarea { height: 60px; font-family: 'SF Mono', 'Cascadia Code', monospace; resize: vertical; border-radius: 8px; }
-.format-toggle {
-  display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg);
-}
-.format-toggle button {
-  border: none; border-radius: 0; padding: 4px 14px; font-size: 12px;
-  background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s;
-}
-.format-toggle button.active { background: var(--accent); color: #fff; }
+.char-detail-header { margin-bottom: 16px; }
+.char-detail-uuid { font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
+.action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+.write-area textarea { height: 80px; font-family: 'SF Mono', monospace; resize: vertical; margin-bottom: 12px; }
 
 /* ===== Log ===== */
 .log-container {
-  flex: 1; overflow-y: auto; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px;
-  background: var(--surface); border-radius: 10px; padding: 6px;
-  max-height: calc(100vh - 420px); min-height: 200px;
-  border: 1px solid var(--border);
+  flex: 1; overflow-y: auto; font-family: 'SF Mono', monospace; font-size: 12px;
+  background: var(--bg); border-radius: 8px; padding: 10px; border: 1px inset var(--border);
+  min-height: 250px;
 }
 .log-entry {
-  padding: 5px 8px; border-bottom: 1px solid var(--border); display: flex; gap: 8px;
-  transition: background 0.1s; border-radius: 4px;
+  padding: 6px 8px; border-bottom: 1px solid var(--border); display: flex; gap: 10px;
+  border-radius: 4px; transition: background 0.1s;
 }
 .log-entry:hover { background: var(--surface2); }
 .log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--text2); flex-shrink: 0; }
-.log-dir { font-weight: 700; min-width: 22px; }
+.log-time { color: var(--text3); flex-shrink: 0; }
+.log-dir { font-weight: 700; width: 28px; flex-shrink: 0; }
 .log-dir.rx { color: var(--green); }
 .log-dir.tx { color: var(--accent); }
 .log-dir.notify { color: var(--yellow); }
-.log-uuid { color: var(--text2); max-width: 110px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.log-uuid { color: var(--text2); max-width: 100px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
 .log-data { color: var(--text); word-break: break-all; flex: 1; }
-.log-text { color: var(--text2); font-style: italic; margin-left: 4px; }
+.log-text { color: var(--text2); font-style: italic; margin-left: 8px; }
 
-/* ===== Toast ===== */
+.frame-container {
+  overflow-y: auto; font-family: 'SF Mono', monospace; font-size: 12px;
+  background: var(--bg); border-radius: 8px; padding: 10px; border: 1px inset var(--border);
+  max-height: 250px; min-height: 120px;
+}
+.frame-card { background: var(--surface2); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.frame-card:last-child { margin-bottom: 0; }
+.frame-meta { display: flex; gap: 8px; color: var(--text3); font-size: 11px; margin-bottom: 8px; align-items: center; }
+.frame-badge { padding: 2px 8px; border-radius: 12px; font-weight: 700; background: var(--green-dim); color: var(--green); }
+.frame-body { white-space: pre-wrap; word-break: break-word; color: var(--text); line-height: 1.5; font-size: 13px; }
+
+/* ===== Utils ===== */
+.empty-state { color: var(--text3); text-align: center; padding: 40px 20px; font-size: 13px; font-weight: 500; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== Enhanced Toast ===== */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
 .toast {
-  position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
-  background: var(--red); color: #fff; border-radius: 10px; font-size: 13px;
-  z-index: 999; animation: slideUp 0.25s ease; box-shadow: var(--shadow-lg);
-  max-width: 400px; word-break: break-word;
+  padding: 14px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+  color: #fff; background: var(--surface2); box-shadow: var(--shadow-lg);
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards, fadeOut 0.3s ease 3.7s forwards;
+  max-width: 350px; word-break: break-word; display: flex; align-items: center; gap: 10px;
 }
-@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.toast.error { background: var(--red); }
+.toast.success { background: var(--green); }
+.toast.info { background: var(--accent); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px) scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes fadeOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px) scale(0.95); } }
 
-.empty-state { color: var(--text2); text-align: center; padding: 40px 20px; font-size: 13px; line-height: 1.6; }
-
-.scanning-indicator {
-  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent); animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
-
-/* ===== Scrollbar ===== */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { opacity: 0.8; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--text3); }
 </style>
 </head>
 <body>
 
-<!-- ===== Top Bar ===== -->
 <div class="topbar">
   <div class="topbar-brand">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6.5 6.5l11 11M6.5 17.5l11-11M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
     </svg>
     <span>BLE Debugger</span>
@@ -260,131 +257,123 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   </div>
 </div>
 
-<!-- ===== Main Layout ===== -->
 <div class="app-layout">
-  <!-- Panel 1: Scan -->
   <div class="panel panel-scan">
     <div class="panel-header">
-      <h2><span data-i18n="devices">设备</span> <span id="deviceCount" style="color:var(--text3);font-weight:400"></span></h2>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span id="scanIndicator" style="display:none"><span class="scanning-indicator"></span></span>
-        <button id="btnScan" class="primary" onclick="toggleScan()" data-i18n="startScan">开始扫描</button>
-      </div>
+      <h2><span data-i18n="devices">设备</span> <span id="deviceCount" style="color:var(--text3); font-weight: 500"></span></h2>
+      <button id="btnScan" class="primary sm" onclick="toggleScan()" data-i18n="startScan">开始扫描</button>
     </div>
     <div class="panel-body" id="deviceList">
-      <div class="empty-state" data-i18n="emptyScan">点击「开始扫描」发现 BLE 设备</div>
+      <div class="empty-state" data-i18n="emptyScan">点击「开始扫描」发现附近设备</div>
     </div>
   </div>
 
-  <!-- Panel 2: Services -->
   <div class="panel panel-services">
     <div class="panel-header">
-      <h2 data-i18n="services">服务</h2>
+      <h2 data-i18n="services">服务列表</h2>
       <button id="btnDisconnect" class="danger sm" onclick="disconnectDevice()" style="display:none" data-i18n="disconnect">断开连接</button>
     </div>
     <div class="panel-body">
       <div id="connStatus" class="conn-status" style="display:none">
-        <span class="conn-dot" id="connDot"></span>
+        <div class="conn-dot" id="connDot"></div>
         <span id="connLabel" data-i18n="disconnected">未连接</span>
       </div>
       <div id="serviceList">
-        <div class="empty-state" data-i18n="emptyService">选择一个设备进行连接</div>
+        <div class="empty-state" data-i18n="emptyService">请先连接左侧设备</div>
       </div>
     </div>
   </div>
 
-  <!-- Panel 3: Data -->
-  <div class="panel panel-data" style="border-right:none">
+  <div class="panel panel-data">
     <div class="panel-header">
-      <h2 data-i18n="data">数据</h2>
-      <div style="display:flex;gap:6px">
-        <button class="sm" onclick="clearLog()" data-i18n="clearLog">清空日志</button>
-      </div>
+      <h2 data-i18n="data">通信数据</h2>
+      <button class="sm" onclick="clearAllData()" data-i18n="clearLog">清空视图</button>
     </div>
-    <div class="panel-body" style="display:flex;flex-direction:column;gap:12px">
-      <!-- Characteristic detail -->
-      <div id="charDetail" style="display:none">
+    <div class="panel-body" style="display:flex; flex-direction:column; padding: 20px;">
+      
+      <div id="charDetail" class="data-section" style="display:none">
         <div class="char-detail-header">
           <div class="char-detail-uuid" id="detailUuid"></div>
           <div class="char-props" id="detailProps"></div>
           <div class="action-row" id="actionRow"></div>
         </div>
 
-        <!-- Write area -->
         <div class="write-area" id="writeArea" style="display:none">
-          <div class="data-section">
-            <h3 data-i18n="writeData">写入数据</h3>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-              <div class="format-toggle">
-                <button id="fmtHex" class="active" onclick="setFormat('hex')">HEX</button>
-                <button id="fmtText" onclick="setFormat('text')">TEXT</button>
-              </div>
-              <select id="writeType" style="width:auto">
-                <option value="with_response" data-i18n="writeWithResp">有响应写入</option>
-                <option value="without_response" data-i18n="writeNoResp">无响应写入</option>
-              </select>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <h3 data-i18n="writeData" style="margin:0">写入数据</h3>
+            <div style="display:flex; gap:8px">
+               <select id="writeType" class="sm" style="width:120px; padding: 4px 8px;">
+                 <option value="with_response" data-i18n="writeWithResp">有响应 (Req)</option>
+                 <option value="without_response" data-i18n="writeNoResp">无响应 (Cmd)</option>
+               </select>
+               <div class="toggle-group" style="padding:0">
+                 <button id="fmtHex" class="active" onclick="setFormat('hex')">HEX</button>
+                 <button id="fmtText" onclick="setFormat('text')">TEXT</button>
+               </div>
             </div>
-            <div class="input-row">
-              <textarea id="writeInput" data-i18n-placeholder="hexPlaceholder" placeholder="输入十六进制字节 (如 48 65 6C 6C 6F) 或文本..."></textarea>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="primary" onclick="writeData()" data-i18n="send">发送</button>
-              <span style="font-size:11px;color:var(--text2)" data-i18n="sendHint">Enter 发送 / Shift+Enter 换行</span>
-              <span id="writeHint" style="font-size:11px;color:var(--text2)"></span>
-            </div>
+          </div>
+          <textarea id="writeInput" data-i18n-placeholder="hexPlaceholder" placeholder="输入十六进制..."></textarea>
+          <div style="display:flex; gap:12px; align-items:center">
+            <button class="primary" onclick="writeData()" data-i18n="send" style="width:100px">发送</button>
+            <span id="writeHint" style="font-size:12px; color:var(--text3)"></span>
           </div>
         </div>
       </div>
 
-      <!-- Log -->
-      <div class="data-section" style="flex:1;display:flex;flex-direction:column">
-        <h3 data-i18n="commLog">通讯日志</h3>
+      <div class="data-section" style="flex:1">
+        <h3><span data-i18n="commLog">实时日志</span></h3>
         <div class="log-container" id="logContainer">
-          <div class="empty-state" data-i18n="emptyLog">暂无数据</div>
+          <div class="empty-state" data-i18n="emptyLog">暂无通信数据</div>
         </div>
       </div>
+
+      <div class="data-section">
+        <h3><span data-i18n="completeFrames">重组帧 (AT Response)</span></h3>
+        <div class="frame-container" id="frameContainer">
+          <div class="empty-state" data-i18n="emptyFrames">暂无重组报文</div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
+
+<div id="toastContainer" class="toast-container"></div>
 
 <script>
 // ===== i18n =====
 const I18N = {
   zh: {
     devices: '设备', startScan: '开始扫描', stopScan: '停止扫描',
-    emptyScan: '点击「开始扫描」发现 BLE 设备', noDevices: '未发现设备',
-    services: '服务', disconnect: '断开连接', disconnected: '未连接',
-    emptyService: '选择一个设备进行连接', connecting: '正在连接',
-    connected: '已连接',
-    data: '数据', clearLog: '清空日志', writeData: '写入数据',
-    writeWithResp: '有响应写入', writeNoResp: '无响应写入',
-    hexPlaceholder: '输入十六进制字节 (如 48 65 6C 6C 6F) 或文本...',
-    textPlaceholder: '输入文本 (如 Hello)',
-    send: '发送', sendHint: 'Enter 发送 / Shift+Enter 换行',
-    commLog: '通讯日志', emptyLog: '暂无数据',
+    emptyScan: '点击「开始扫描」发现附近设备', noDevices: '未发现设备',
+    services: '服务列表', disconnect: '断开连接', disconnected: '未连接',
+    emptyService: '请先连接左侧设备', connecting: '正在建立连接',
+    connected: '已连接', data: '通信数据', clearLog: '清空视图', writeData: '写入数据',
+    writeWithResp: '有响应 (Req)', writeNoResp: '无响应 (Cmd)',
+    hexPlaceholder: '输入十六进制字节 (如 48 65 6C 6C 6F)...',
+    textPlaceholder: '输入文本 (如 Hello)...', send: '发送 (Enter)',
+    commLog: '实时日志', emptyLog: '暂无通信数据',
+    completeFrames: '重组帧 (AT Response)', emptyFrames: '暂无重组报文',
     read: '读取', startNotify: '开启通知', stopNotify: '停止通知',
-    readDesc: '读描述符',
-    noServices: '未发现服务', chars: '个特征',
-    themeDark: '深色', themeEyecare: '护眼',
-    invalidHex: '无效的十六进制格式',
+    readDesc: '读描述符', noServices: '未发现服务', chars: '特征值',
+    themeDark: '深色', themeEyecare: '护眼', invalidHex: '无效的十六进制格式',
+    bytes: '字节', showHex: '查看 HEX',
   },
   en: {
     devices: 'Devices', startScan: 'Start Scan', stopScan: 'Stop Scan',
-    emptyScan: 'Click "Start Scan" to discover BLE devices', noDevices: 'No devices found',
+    emptyScan: 'Click "Start Scan" to discover devices', noDevices: 'No devices found',
     services: 'Services', disconnect: 'Disconnect', disconnected: 'Disconnected',
-    emptyService: 'Select a device to connect', connecting: 'Connecting',
-    connected: 'Connected',
-    data: 'Data', clearLog: 'Clear Log', writeData: 'Write Data',
-    writeWithResp: 'Write with Response', writeNoResp: 'Write without Response',
-    hexPlaceholder: 'Enter hex bytes (e.g. 48 65 6C 6C 6F) or text...',
-    textPlaceholder: 'Enter text (e.g. Hello)',
-    send: 'Send', sendHint: 'Enter send / Shift+Enter newline',
-    commLog: 'Communication Log', emptyLog: 'No data yet',
-    read: 'Read', startNotify: 'Start Notify', stopNotify: 'Stop Notify',
-    readDesc: 'Read Desc',
-    noServices: 'No services found', chars: 'chars',
-    themeDark: 'Dark', themeEyecare: 'Eyecare',
-    invalidHex: 'Invalid hex format',
+    emptyService: 'Connect to a device first', connecting: 'Connecting',
+    connected: 'Connected', data: 'Data Workspace', clearLog: 'Clear All', writeData: 'Write',
+    writeWithResp: 'With Resp (Req)', writeNoResp: 'No Resp (Cmd)',
+    hexPlaceholder: 'Enter hex bytes (e.g. 48 65 6C 6C 6F)...',
+    textPlaceholder: 'Enter text (e.g. Hello)...', send: 'Send (Enter)',
+    commLog: 'Live Log', emptyLog: 'No traffic yet',
+    completeFrames: 'Reassembled Frames', emptyFrames: 'No frames yet',
+    read: 'Read', startNotify: 'Notify On', stopNotify: 'Notify Off',
+    readDesc: 'Read Desc', noServices: 'No services found', chars: 'chars',
+    themeDark: 'Dark', themeEyecare: 'Eyecare', invalidHex: 'Invalid hex format',
+    bytes: 'bytes', showHex: 'View HEX',
   }
 };
 
@@ -394,51 +383,33 @@ let currentTheme = localStorage.getItem('ble-theme') || 'dark';
 function t(key) { return I18N[currentLang][key] || key; }
 
 function setLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('ble-lang', lang);
-  // Update toggle buttons
+  currentLang = lang; localStorage.setItem('ble-lang', lang);
   const btns = document.querySelectorAll('#langToggle button');
-  btns[0].className = lang === 'zh' ? 'active' : '';
-  btns[1].className = lang === 'en' ? 'active' : '';
+  btns[0].className = lang === 'zh' ? 'active' : ''; btns[1].className = lang === 'en' ? 'active' : '';
   applyI18n();
-  // Re-render dynamic content
   if (services.length) renderServices(services);
   if (selectedChar) renderActions();
-  renderLog();
-  // Update scan button
+  renderLog(); renderFrames();
   document.getElementById('btnScan').textContent = isScanning ? t('stopScan') : t('startScan');
-  // Theme labels
   document.getElementById('themeDarkLabel').textContent = t('themeDark');
   document.getElementById('themeEyecareLabel').textContent = t('themeEyecare');
-  // Update device list if we have devices cached
   if (lastDevices) renderDevices(lastDevices);
-  // Update write type dropdown
   const opts = document.getElementById('writeType').options;
-  opts[0].textContent = t('writeWithResp');
-  opts[1].textContent = t('writeNoResp');
+  opts[0].textContent = t('writeWithResp'); opts[1].textContent = t('writeNoResp');
 }
 
 function applyI18n() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (I18N[currentLang][key]) el.placeholder = I18N[currentLang][key];
-  });
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = I18N[currentLang][el.getAttribute('data-i18n')]; });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = I18N[currentLang][el.getAttribute('data-i18n-placeholder')]; });
 }
 
 function setTheme(theme) {
-  currentTheme = theme;
-  localStorage.setItem('ble-theme', theme);
+  currentTheme = theme; localStorage.setItem('ble-theme', theme);
   document.documentElement.setAttribute('data-theme', theme);
   const btns = document.querySelectorAll('#themeToggle button');
-  btns[0].className = theme === 'dark' ? 'active' : '';
-  btns[1].className = theme === 'eyecare' ? 'active' : '';
+  btns[0].className = theme === 'dark' ? 'active' : ''; btns[1].className = theme === 'eyecare' ? 'active' : '';
 }
 
-// Apply saved settings on load
 document.documentElement.setAttribute('data-theme', currentTheme);
 
 // ===== Socket & State =====
@@ -450,27 +421,26 @@ let writeFormat = 'hex';
 let notifyEnabled = {};
 let services = [];
 let lastDevices = null;
+let assembledEntries = [];
+let logEntries = [];
 
-// --- Socket events ---
-socket.on('scan_results', (data) => {
-  lastDevices = data.devices;
-  renderDevices(data.devices);
-});
+socket.on('scan_results', (data) => { lastDevices = data.devices; renderDevices(data.devices); });
 
 socket.on('scan_status', (data) => {
   isScanning = data.scanning;
-  document.getElementById('btnScan').textContent = isScanning ? t('stopScan') : t('startScan');
-  document.getElementById('btnScan').className = isScanning ? 'danger' : 'primary';
-  document.getElementById('scanIndicator').style.display = isScanning ? '' : 'none';
+  const btn = document.getElementById('btnScan');
+  btn.textContent = isScanning ? t('stopScan') : t('startScan');
+  btn.className = isScanning ? 'danger sm' : 'primary sm';
+  if(!isScanning && !lastDevices) document.getElementById('deviceList').innerHTML = `<div class="empty-state">${t('emptyScan')}</div>`;
 });
 
 socket.on('connected', (data) => {
   services = data.services;
-  document.getElementById('connStatus').style.display = '';
   document.getElementById('connDot').className = 'conn-dot on';
   document.getElementById('connLabel').textContent = t('connected') + ': ' + data.address;
   document.getElementById('btnDisconnect').style.display = '';
   renderServices(data.services);
+  showToast(t('connected'), 'success');
 });
 
 socket.on('disconnected', () => {
@@ -479,43 +449,43 @@ socket.on('disconnected', () => {
   document.getElementById('btnDisconnect').style.display = 'none';
   document.getElementById('serviceList').innerHTML = `<div class="empty-state">${t('emptyService')}</div>`;
   document.getElementById('charDetail').style.display = 'none';
-  notifyEnabled = {};
-  selectedChar = null;
-  services = [];
+  notifyEnabled = {}; selectedChar = null; services = []; assembledEntries = [];
+  renderFrames();
 });
 
 socket.on('char_value', (data) => { addLog('RX', data.uuid, data.value, data.timestamp); });
 socket.on('write_ok', (data) => { addLog('TX', data.uuid, data.value, data.timestamp); });
 socket.on('notification', (data) => { addLog('NOTIFY', data.uuid, data.value, data.timestamp); });
+socket.on('notification_frame', (data) => { addAssembledFrame(data.uuid, data.value, data.timestamp); });
 
 socket.on('notify_status', (data) => {
   notifyEnabled[data.uuid] = data.enabled;
   if (selectedChar && selectedChar === data.uuid) renderActions();
+  showToast(data.enabled ? t('startNotify') + ' OK' : t('stopNotify') + ' OK', 'info');
 });
 
-socket.on('descriptor_value', (data) => {
-  addLog('RX', `desc:${data.handle}`, data.value, new Date().toTimeString().slice(0,12));
+socket.on('descriptor_value', (data) => { addLog('RX', `desc:${data.handle}`, data.value, new Date().toTimeString().slice(0,8)); });
+
+// Error handling fix
+socket.on('error', (data) => {
+  showToast(data.message, 'error');
+  // If connection failed while UI was spinning, the backend emitted "disconnected" properly now, but we double check
+  if (data.type === 'connect' || document.getElementById('connLabel').textContent.includes(t('connecting'))) {
+      document.getElementById('connDot').className = 'conn-dot off';
+      document.getElementById('connLabel').textContent = t('disconnected');
+  }
 });
 
-socket.on('error', (data) => { showToast(data.message); });
-
-// --- Scanning ---
-function toggleScan() {
-  socket.emit(isScanning ? 'stop_scan' : 'start_scan');
-}
+function toggleScan() { socket.emit(isScanning ? 'stop_scan' : 'start_scan'); }
 
 function renderDevices(devices) {
   const el = document.getElementById('deviceList');
   document.getElementById('deviceCount').textContent = `(${devices.length})`;
-  if (devices.length === 0) {
-    el.innerHTML = `<div class="empty-state">${t('noDevices')}</div>`;
-    return;
-  }
+  if (!devices.length) { el.innerHTML = `<div class="empty-state">${t('noDevices')}</div>`; return; }
   el.innerHTML = devices.map(d => {
     const rssiClass = d.rssi > -60 ? 'rssi-strong' : d.rssi > -80 ? 'rssi-medium' : 'rssi-weak';
-    const sel = selectedDevice === d.address ? 'selected' : '';
-    return `<div class="device-item ${sel}" onclick="connectDevice('${d.address}')">
-      <div class="device-rssi ${rssiClass}">${d.rssi} dBm</div>
+    return `<div class="device-item ${selectedDevice === d.address ? 'selected' : ''}" onclick="connectDevice('${d.address}')">
+      <div class="device-rssi ${rssiClass}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>${d.rssi}</div>
       <div class="device-info">
         <div class="device-name">${escHtml(d.name)}</div>
         <div class="device-addr">${d.address}</div>
@@ -524,40 +494,30 @@ function renderDevices(devices) {
   }).join('');
 }
 
-// --- Connection ---
 function connectDevice(address) {
-  selectedDevice = address;
-  document.getElementById('serviceList').innerHTML = `<div class="empty-state">${t('connecting')}...</div>`;
+  selectedDevice = address; renderDevices(lastDevices || []);
+  document.getElementById('serviceList').innerHTML = `<div class="empty-state" style="opacity:0.6">${t('connecting')}...</div>`;
   document.getElementById('connStatus').style.display = '';
-  document.getElementById('connDot').className = 'conn-dot off';
-  document.getElementById('connLabel').textContent = t('connecting') + ' ' + address + '...';
+  document.getElementById('connDot').className = 'conn-dot loading'; // Spinner UI
+  document.getElementById('connLabel').textContent = t('connecting') + ' ' + address;
+  document.getElementById('btnDisconnect').style.display = 'none';
   socket.emit('connect_device', { address });
 }
 
 function disconnectDevice() { socket.emit('disconnect_device'); }
 
-// --- Services ---
 function renderServices(svcs) {
   const el = document.getElementById('serviceList');
-  if (!svcs.length) {
-    el.innerHTML = `<div class="empty-state">${t('noServices')}</div>`;
-    return;
-  }
-  el.innerHTML = svcs.map((svc) => {
-    const shortUuid = shortName(svc.uuid);
-    const chars = svc.characteristics.map(ch => {
-      const sel = selectedChar === ch.uuid ? 'selected' : '';
-      return `<div class="char-item ${sel}" onclick="selectChar('${ch.uuid}')">
+  if (!svcs.length) { el.innerHTML = `<div class="empty-state">${t('noServices')}</div>`; return; }
+  el.innerHTML = svcs.map(svc => {
+    const chars = svc.characteristics.map(ch => `
+      <div class="char-item ${selectedChar === ch.uuid ? 'selected' : ''}" onclick="selectChar('${ch.uuid}')">
         <div class="char-uuid">${shortName(ch.uuid)}</div>
-        <div class="char-props">
-          ${ch.properties.map(p => `<span class="prop-tag ${p}">${p}</span>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
+        <div class="char-props">${ch.properties.map(p => `<span class="prop-tag ${p}">${p.replace(/write-without-response/g,'NO-RES')}</span>`).join('')}</div>
+      </div>`).join('');
     return `<div class="service-group">
-      <div class="service-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
-        <span>${shortUuid}</span>
-        <span class="svc-count">${svc.characteristics.length} ${t('chars')}</span>
+      <div class="service-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'block'">
+        <span>${shortName(svc.uuid)}</span><span class="svc-count">${svc.characteristics.length} ${t('chars')}</span>
       </div>
       <div class="service-chars">${chars}</div>
     </div>`;
@@ -565,195 +525,131 @@ function renderServices(svcs) {
 }
 
 function selectChar(uuid) {
-  selectedChar = uuid;
-  renderServices(services);
+  selectedChar = uuid; renderServices(services);
   document.getElementById('charDetail').style.display = '';
   document.getElementById('detailUuid').textContent = uuid;
-
-  const char = findChar(uuid);
-  if (!char) return;
-  document.getElementById('detailProps').innerHTML = char.properties.map(p =>
-    `<span class="prop-tag ${p}">${p}</span>`
-  ).join('');
-
+  const char = findChar(uuid); if (!char) return;
+  document.getElementById('detailProps').innerHTML = char.properties.map(p => `<span class="prop-tag ${p}">${p}</span>`).join('');
   renderActions();
-  const canWrite = char.properties.some(p => p.includes('write'));
-  document.getElementById('writeArea').style.display = canWrite ? '' : 'none';
+  document.getElementById('writeArea').style.display = char.properties.some(p => p.includes('write')) ? 'block' : 'none';
 }
 
 function renderActions() {
-  const char = findChar(selectedChar);
-  if (!char) return;
-  const row = document.getElementById('actionRow');
-  let btns = '';
-  if (char.properties.includes('read')) {
-    btns += `<button class="sm" onclick="readChar('${char.uuid}')">${t('read')}</button>`;
-  }
-  if (char.properties.includes('notify') || char.properties.includes('indicate')) {
+  const char = findChar(selectedChar); if (!char) return;
+  const row = document.getElementById('actionRow'); let btns = '';
+  if (char.properties.includes('read')) btns += `<button class="sm" onclick="socket.emit('read_char', {uuid:'${char.uuid}'})">${t('read')}</button>`;
+  if (char.properties.some(p => ['notify','indicate'].includes(p))) {
     const en = notifyEnabled[char.uuid];
-    btns += `<button class="sm ${en?'danger':''}" onclick="toggleNotify('${char.uuid}', ${!en})">${en ? t('stopNotify') : t('startNotify')}</button>`;
+    btns += `<button class="sm ${en?'danger':'primary'}" onclick="socket.emit('toggle_notify', {uuid:'${char.uuid}', enable:${!en}})">${en ? t('stopNotify') : t('startNotify')}</button>`;
   }
-  if (char.descriptors && char.descriptors.length) {
-    char.descriptors.forEach(d => {
-      btns += `<button class="sm" onclick="readDescriptor(${d.handle})" title="${d.uuid}">${t('readDesc')} ${shortName(d.uuid)}</button>`;
-    });
-  }
+  char.descriptors?.forEach(d => { btns += `<button class="sm" onclick="socket.emit('read_descriptor', {handle:${d.handle}})">${t('readDesc')}</button>`; });
   row.innerHTML = btns;
 }
 
-function findChar(uuid) {
-  for (const svc of services) {
-    for (const ch of svc.characteristics) {
-      if (ch.uuid === uuid) return ch;
-    }
-  }
-  return null;
-}
-
-// --- Read / Write / Notify ---
-function readChar(uuid) { socket.emit('read_char', { uuid }); }
-function toggleNotify(uuid, enable) { socket.emit('toggle_notify', { uuid, enable }); }
-function readDescriptor(handle) { socket.emit('read_descriptor', { handle }); }
+function findChar(u) { return services.flatMap(s => s.characteristics).find(c => c.uuid === u); }
 
 function writeData() {
   if (!selectedChar) return;
-  const raw = document.getElementById('writeInput').value;
-  if (!raw.trim()) return;
-
-  let hexValue;
+  const raw = document.getElementById('writeInput').value; if (!raw.trim()) return;
+  let hex;
   if (writeFormat === 'hex') {
-    hexValue = raw.trim().replace(/\s+/g, '').replace(/0x/gi, '');
-    if (!/^[0-9a-fA-F]*$/.test(hexValue) || hexValue.length % 2 !== 0) {
-      showToast(t('invalidHex'));
-      return;
-    }
+    hex = raw.trim().replace(/\s+/g, '').replace(/0x/gi, '');
+    if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) return showToast(t('invalidHex'), 'error');
   } else {
-    hexValue = Array.from(new TextEncoder().encode(raw)).map(b => b.toString(16).padStart(2, '0')).join('');
+    hex = Array.from(new TextEncoder().encode(raw)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  socket.emit('write_char', { uuid: selectedChar, value: hexValue, type: document.getElementById('writeType').value });
+  socket.emit('write_char', { uuid: selectedChar, value: hex, type: document.getElementById('writeType').value });
 }
 
-// --- Format ---
 function setFormat(fmt) {
-  const inputEl = document.getElementById('writeInput');
-  const currentVal = inputEl.value;
+  const inputEl = document.getElementById('writeInput'); const val = inputEl.value;
   if (fmt === writeFormat) return;
-
-  if (currentVal) {
+  if (val) {
     if (writeFormat === 'hex' && fmt === 'text') {
-      const hex = currentVal.trim().replace(/\s+/g, '').replace(/0x/gi, '');
-      if (/^[0-9a-fA-F]*$/.test(hex) && hex.length % 2 === 0) inputEl.value = hexToText(hex);
+      const hex = val.replace(/\s+/g, ''); if (/^[0-9a-f]*$/i.test(hex) && hex.length % 2 === 0) inputEl.value = hexToText(hex);
     } else if (writeFormat === 'text' && fmt === 'hex') {
-      inputEl.value = Array.from(new TextEncoder().encode(currentVal)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      inputEl.value = Array.from(new TextEncoder().encode(val)).map(b => b.toString(16).padStart(2, '0')).join(' ');
     }
   }
-
   writeFormat = fmt;
   document.getElementById('fmtHex').className = fmt === 'hex' ? 'active' : '';
   document.getElementById('fmtText').className = fmt === 'text' ? 'active' : '';
-  inputEl.placeholder = fmt === 'hex' ? t('hexPlaceholder') : t('textPlaceholder');
-  updateWriteHint();
+  inputEl.placeholder = fmt === 'hex' ? t('hexPlaceholder') : t('textPlaceholder'); updateWriteHint();
 }
 
 function updateWriteHint() {
-  const raw = document.getElementById('writeInput').value;
-  const hint = document.getElementById('writeHint');
+  const raw = document.getElementById('writeInput').value, hint = document.getElementById('writeHint');
   if (!raw.trim()) { hint.textContent = ''; return; }
-
   if (writeFormat === 'hex') {
-    const hex = raw.trim().replace(/\s+/g, '').replace(/0x/gi, '');
-    if (/^[0-9a-fA-F]*$/.test(hex) && hex.length % 2 === 0) {
-      hint.textContent = `Text: "${hexToText(hex)}" (${hex.length/2} bytes)`;
-    } else {
-      hint.textContent = t('invalidHex');
-      hint.style.color = 'var(--red)';
-      return;
-    }
+    const hex = raw.replace(/\s+/g, '');
+    if (/^[0-9a-f]*$/i.test(hex) && hex.length % 2 === 0) hint.innerHTML = `Text: <b style="color:var(--text)">${escHtml(hexToText(hex))}</b> (${hex.length/2} bytes)`;
+    else { hint.textContent = t('invalidHex'); hint.style.color = 'var(--red)'; return; }
   } else {
-    const bytes = new TextEncoder().encode(raw);
-    hint.textContent = `Hex: ${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ')} (${bytes.length} bytes)`;
+    const b = new TextEncoder().encode(raw);
+    hint.innerHTML = `Hex: <b style="color:var(--text)">${Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join(' ')}</b> (${b.length} bytes)`;
   }
-  hint.style.color = 'var(--text2)';
+  hint.style.color = 'var(--text3)';
 }
 
-const writeInputEl = document.getElementById('writeInput');
-writeInputEl?.addEventListener('input', updateWriteHint);
-writeInputEl?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); writeData(); }
-});
+document.getElementById('writeInput')?.addEventListener('input', updateWriteHint);
+document.getElementById('writeInput')?.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); writeData(); } });
 
-// --- Log ---
-let logEntries = [];
-function addLog(direction, uuid, hexValue, timestamp) {
-  const text = hexToText(hexValue);
-  const printable = isPrintable(text);
-  logEntries.push({ direction, uuid, hexValue, text, printable, timestamp });
+function addLog(dir, u, h, ts) {
+  const txt = hexToText(h);
+  logEntries.push({ dir, u, h, txt, p: isPrintable(txt), ts });
+  if(logEntries.length > 200) logEntries.shift();
   renderLog();
 }
 
 function renderLog() {
   const el = document.getElementById('logContainer');
-  if (!logEntries.length) {
-    el.innerHTML = `<div class="empty-state">${t('emptyLog')}</div>`;
-    return;
-  }
-  el.innerHTML = logEntries.map(e => {
-    const dirClass = e.direction === 'TX' ? 'tx' : e.direction === 'NOTIFY' ? 'notify' : 'rx';
-    const label = e.direction === 'NOTIFY' ? 'NF' : e.direction;
-    const textPart = e.printable ? `<span class="log-text">"${escHtml(e.text)}"</span>` : '';
-    return `<div class="log-entry">
-      <span class="log-time">${e.timestamp}</span>
-      <span class="log-dir ${dirClass}">${label}</span>
-      <span class="log-uuid" title="${e.uuid}">${shortName(e.uuid)}</span>
-      <span class="log-data">${formatHex(e.hexValue)}${textPart}</span>
-    </div>`;
-  }).join('');
+  if (!logEntries.length) { el.innerHTML = `<div class="empty-state">${t('emptyLog')}</div>`; return; }
+  el.innerHTML = logEntries.map(e => `
+    <div class="log-entry">
+      <span class="log-time">${e.ts}</span>
+      <span class="log-dir ${e.dir.toLowerCase()}">${e.dir === 'NOTIFY' ? 'NF' : e.dir}</span>
+      <span class="log-uuid" title="${e.u}">${shortName(e.u)}</span>
+      <span class="log-data">${formatHex(e.h)}${e.p ? `<span class="log-text">"${escHtml(e.txt)}"</span>` : ''}</span>
+    </div>`).join('');
   el.scrollTop = el.scrollHeight;
 }
 
-function clearLog() { logEntries = []; renderLog(); }
-
-// --- Utils ---
-function hexToText(hex) {
-  const bytes = [];
-  for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i, 2), 16));
-  try { return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes)); } catch { return ''; }
-}
-function isPrintable(str) { return str.length > 0 && /^[\x20-\x7E\u4e00-\u9fff\u00a0-\u00ff\n\r\t]+$/.test(str); }
-function formatHex(hex) { return hex.match(/.{1,2}/g)?.join(' ').toUpperCase() || hex.toUpperCase(); }
-
-function shortName(uuid) {
-  const known = {
-    '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
-    '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
-    '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
-    '0000180f-0000-1000-8000-00805f9b34fb': 'Battery Service',
-    '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
-    '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
-    '00002a19-0000-1000-8000-00805f9b34fb': 'Battery Level',
-    '00002a29-0000-1000-8000-00805f9b34fb': 'Manufacturer',
-    '00002902-0000-1000-8000-00805f9b34fb': 'CCCD',
-  };
-  if (known[uuid]) return `${known[uuid]} (${uuid.slice(4,8)})`;
-  if (uuid.endsWith('-0000-1000-8000-00805f9b34fb')) return `0x${uuid.slice(4,8).toUpperCase()}`;
-  return uuid;
+function addAssembledFrame(u, h, ts) {
+  const txt = hexToText(h);
+  assembledEntries.unshift({ u, h, txt, p: isPrintable(txt), ts, b: h.length / 2 });
+  if (assembledEntries.length > 50) assembledEntries.pop();
+  renderFrames();
 }
 
+function renderFrames() {
+  const el = document.getElementById('frameContainer');
+  if (!assembledEntries.length) { el.innerHTML = `<div class="empty-state">${t('emptyFrames')}</div>`; return; }
+  el.innerHTML = assembledEntries.map(e => `
+    <div class="frame-card">
+      <div class="frame-meta"><span class="frame-badge">OK</span> <span>${e.ts}</span> <span title="${e.u}">${shortName(e.u)}</span> <span>${e.b} ${t('bytes')}</span></div>
+      <div class="frame-body">${e.p ? escHtml(e.txt) : formatHex(e.h)}</div>
+    </div>`).join('');
+}
+
+function clearAllData() { logEntries = []; assembledEntries = []; renderLog(); renderFrames(); }
+
+function hexToText(h) { try { return new TextDecoder().decode(new Uint8Array(h.match(/.{1,2}/g)?.map(b=>parseInt(b,16))||[])); } catch { return ''; } }
+function isPrintable(s) { return s.length > 0 && /^[\x20-\x7E\u4e00-\u9fff\u00a0-\u00ff\n\r\t]+$/.test(s); }
+function formatHex(h) { return h.match(/.{1,2}/g)?.join(' ').toUpperCase() || h.toUpperCase(); }
+function shortName(u) { return u.endsWith('-0000-1000-8000-00805f9b34fb') ? `0x${u.slice(4,8).toUpperCase()}` : u.slice(0,8)+'...'; }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function showToast(msg) {
+function showToast(msg, type = 'info') {
+  const cont = document.getElementById('toastContainer');
   const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  document.body.appendChild(el);
+  const icon = type === 'error' ? '⚠️' : type === 'success' ? '✅' : '💡';
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icon}</span><span>${escHtml(msg)}</span>`;
+  cont.appendChild(el);
   setTimeout(() => el.remove(), 4000);
 }
 
-// ===== Init =====
-(function init() {
-  setTheme(currentTheme);
-  setLang(currentLang);
-})();
+(function init() { setTheme(currentTheme); setLang(currentLang); })();
 </script>
 </body>
 </html>

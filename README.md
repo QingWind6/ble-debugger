@@ -28,6 +28,7 @@ A browser-based BLE debugging tool with bilingual UI and dual themes.
 | **GATT Explorer** | Browse services, characteristics, and descriptors in a collapsible tree view |
 | **Read / Write / Notify** | Read characteristic values, write in HEX or Text mode, subscribe to notifications |
 | **Communication Log** | Timestamped log with direction tags (RX / TX / NOTIFY) and auto hex-to-text decode |
+| **Automation API** | Local HTTP endpoints for scan, connect, services, read, write, notify, and AT command automation |
 | **Bilingual UI** | Switch between 中文 and English with one click, preference saved locally |
 | **Dual Themes** | Dark mode and Eyecare (warm beige) mode, preference saved locally |
 
@@ -89,6 +90,109 @@ Visit [http://localhost:5555](http://localhost:5555)
 
 ---
 
+## Automation API / 自动化接口
+
+The same backend BLE operations used by the Web UI are also available through local HTTP endpoints.
+
+Web UI 使用的同一套 BLE 后端能力，现在也可以通过本地 HTTP 接口调用。
+
+### Available endpoints / 可用接口
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/health` | Basic health check and runtime state |
+| `GET` | `/api/state` | Current scan / connection / notify state |
+| `POST` | `/api/scan/start` | Start background BLE scan |
+| `GET` | `/api/scan/results` | Fetch current scan results |
+| `POST` | `/api/scan/stop` | Stop BLE scan |
+| `POST` | `/api/connect` | Connect by BLE address |
+| `POST` | `/api/disconnect` | Disconnect current device |
+| `GET` | `/api/services` | List connected GATT services |
+| `POST` | `/api/read` | Read characteristic value |
+| `POST` | `/api/write` | Write characteristic in HEX or Text |
+| `POST` | `/api/notify` | Enable / disable notify |
+| `POST` | `/api/read_descriptor` | Read descriptor by handle |
+| `GET` | `/api/events` | Poll notification or reassembled frame history |
+| `DELETE` | `/api/events` | Clear stored notification or frame history |
+| `POST` | `/api/exchange` | Write once and wait for a notification/frame |
+| `POST` | `/api/at/command` | Send AT text command and wait for a reassembled frame |
+
+### Recommended flow for section-2 BLE testing / 第二部分蓝牙自测推荐流程
+
+1. Start scan
+
+```bash
+curl -X POST http://127.0.0.1:5555/api/scan/start
+```
+
+2. Poll discovered devices
+
+```bash
+curl http://127.0.0.1:5555/api/scan/results
+```
+
+3. Connect to the target device
+
+```bash
+curl -X POST http://127.0.0.1:5555/api/connect \
+  -H 'Content-Type: application/json' \
+  -d '{"address":"AA:BB:CC:DD:EE:FF"}'
+```
+
+4. Inspect services and find your write / notify characteristic UUIDs
+
+```bash
+curl http://127.0.0.1:5555/api/services
+```
+
+5. Send an AT command and wait for a complete response frame
+
+```bash
+curl -X POST http://127.0.0.1:5555/api/at/command \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "write_uuid": "YOUR_WRITE_UUID",
+    "notify_uuid": "YOUR_NOTIFY_UUID",
+    "command": "AT+deviceinfo?",
+    "with_response": true,
+    "timeout_ms": 5000
+  }'
+```
+
+The response includes the outgoing write and the first reassembled notification frame captured after that write.
+
+返回结果会同时包含本次写入数据，以及写入之后捕获到的第一条重组后的通知帧。
+
+### Example: generic write-and-wait / 通用写入并等待
+
+```bash
+curl -X POST http://127.0.0.1:5555/api/exchange \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "write_uuid": "YOUR_WRITE_UUID",
+    "notify_uuid": "YOUR_NOTIFY_UUID",
+    "value": "AT+wifitable?",
+    "encoding": "text",
+    "wait_kind": "frame",
+    "with_response": true,
+    "timeout_ms": 5000
+  }'
+```
+
+### Poll captured notifications / 轮询通知结果
+
+```bash
+curl 'http://127.0.0.1:5555/api/events?kind=frame&since_id=0&limit=20'
+```
+
+### Notes / 说明
+
+- For Linux + BlueZ, it is safer to connect after the device has been discovered by the built-in scanner.
+- The API is intended for local lab automation. By default the app still listens on port `5555`.
+- The AT command endpoint assumes your device responses can be reassembled by the built-in frame parser (`+READY:`, `ok\r\n`, `\r\nok\r\n`).
+
+---
+
 ## Tech Stack / 技术栈
 
 | Layer | Technology |
@@ -129,4 +233,3 @@ ble-debugger/
 ## License
 
 MIT
-
