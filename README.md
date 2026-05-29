@@ -4,9 +4,9 @@
 
 **Web-based Bluetooth Low Energy debugging tool**
 
-一个基于浏览器的 BLE 调试工具，支持中英双语与深色/护眼双主题。
+一个通用的浏览器 BLE 调试工具，支持扫描、广播数据查看、GATT 调试、通知订阅、REST API、中英双语与深色/护眼双主题。
 
-A browser-based BLE debugging tool with bilingual UI and dual themes.
+A generic browser-based BLE debugging tool with advertisement inspection, GATT workflows, notifications, REST API access, bilingual UI, and dual themes.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-000?logo=flask)
@@ -25,9 +25,12 @@ A browser-based BLE debugging tool with bilingual UI and dual themes.
 | Feature | Description |
 |---------|-------------|
 | **BLE Scan** | Real-time device discovery with RSSI signal strength indicators (color-coded) |
+| **Advertisement Inspector** | Inspect local name, service UUIDs, Service Data, Manufacturer Data, TX power, connectable state, and reconstructed raw AD payloads |
 | **GATT Explorer** | Browse services, characteristics, and descriptors in a collapsible tree view |
 | **Read / Write / Notify** | Read characteristic values, write in HEX or Text mode, subscribe to notifications |
 | **Communication Log** | Timestamped log with direction tags (RX / TX / NOTIFY) and auto hex-to-text decode |
+| **Frame View** | Reassemble common line / OK-style notification frames for easier debugging |
+| **REST API** | Automate scan, connect, read, write, notify, event polling, and command exchange workflows |
 | **Bilingual UI** | Switch between 中文 and English with one click, preference saved locally |
 | **Dual Themes** | Dark mode and Eyecare (warm beige) mode, preference saved locally |
 
@@ -62,7 +65,7 @@ pip install -r requirements.txt
 ### 2. Run / 运行
 
 ```bash
-python app.py
+python3 app.py
 ```
 
 ### 3. Open browser / 打开浏览器
@@ -83,8 +86,45 @@ Visit [http://localhost:5555](http://localhost:5555)
 3. Select a characteristic to read, write, or subscribe to notifications
    选择特征值进行读取、写入或订阅通知
 
-4. All communication is logged in the right panel with timestamps
+4. Expand a scan result to inspect generic advertisement data
+   展开扫描结果，查看通用广播数据
+
+5. All communication is logged in the right panel with timestamps
    所有通信记录会在右侧面板带时间戳地显示
+```
+
+---
+
+## REST API / 自动化接口
+
+All API responses use a common JSON envelope: `{ "ok": true, "result": ... }` for success and `{ "ok": false, "error": "..." }` for failures.
+
+所有接口成功时返回 `{ "ok": true, "result": ... }`，失败时返回 `{ "ok": false, "error": "..." }`。
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Health check and current state |
+| `GET` | `/api/state` | Scan, connection, notify, and event state |
+| `POST` | `/api/scan/start` | Start BLE scanning |
+| `POST` | `/api/scan/stop` | Stop BLE scanning |
+| `GET` | `/api/scan/results` | Latest scan results with advertisement details |
+| `POST` | `/api/connect` | Connect to a BLE device by address |
+| `POST` | `/api/disconnect` | Disconnect current device |
+| `GET` | `/api/services` | List GATT services for the connected device |
+| `POST` | `/api/read` | Read a characteristic |
+| `POST` | `/api/write` | Write HEX or text to a characteristic |
+| `POST` | `/api/notify` | Enable or disable notification / indication |
+| `POST` | `/api/read_descriptor` | Read a descriptor by handle |
+| `GET` / `DELETE` | `/api/events` | Read or clear notification / frame events |
+| `POST` | `/api/exchange` | Write data and wait for a notification or frame |
+| `POST` | `/api/command` | Write a text command and wait for a notification frame |
+
+Example / 示例:
+
+```bash
+curl -X POST http://localhost:5555/api/write \
+  -H 'Content-Type: application/json' \
+  -d '{"uuid":"0000xxxx-0000-1000-8000-00805f9b34fb","value":"48656c6c6f","encoding":"hex","with_response":true}'
 ```
 
 ---
@@ -129,4 +169,3 @@ ble-debugger/
 ## License
 
 MIT
-
