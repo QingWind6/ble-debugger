@@ -2,6 +2,7 @@
 """BLE Debugger - Bluetooth Low Energy debugging tool with Web UI and REST API."""
 
 import asyncio
+import os
 import threading
 import time
 from collections import deque
@@ -11,6 +12,7 @@ from bleak import BleakClient, BleakScanner
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO, emit
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "ble-debugger"
@@ -29,6 +31,7 @@ discovered_devices = {}  # address -> BLEDevice object (kept alive for connectio
 last_scan_results: list[dict] = []
 
 EVENT_HISTORY_LIMIT = 200
+MAX_SYNC_SCAN_SECONDS = 30.0
 event_condition = threading.Condition()
 event_sequence = 0
 notification_events = deque(maxlen=EVENT_HISTORY_LIMIT)
@@ -52,8 +55,8 @@ class ApiError(RuntimeError):
         self.status_code = status_code
 
 
-def run_async(coro):
-    return asyncio.run_coroutine_threadsafe(coro, loop).result(timeout=30)
+def run_async(coro, timeout: float = 30):
+    return asyncio.run_coroutine_threadsafe(coro, loop).result(timeout=timeout)
 
 
 def now_timestamp() -> str:
@@ -214,6 +217,15 @@ def require_json_body():
     return data
 
 
+def optional_json_body() -> dict:
+    data = request.get_json(silent=True)
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ApiError("JSON body must be an object")
+    return data
+
+
 def require_str(data: dict, key: str) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not value.strip():
@@ -221,11 +233,26 @@ def require_str(data: dict, key: str) -> str:
     return value.strip()
 
 
+def require_characteristic_spec(data: dict):
+    if "uuid" in data:
+        return require_str(data, "uuid")
+    if "handle" in data:
+        return require_int(data.get("handle"), "handle")
+    raise ApiError('"uuid" or "handle" is required')
+
+
 def require_int(value, key: str) -> int:
     try:
         return int(value)
     except (TypeError, ValueError):
         raise ApiError(f'"{key}" must be an integer') from None
+
+
+def require_float(value, key: str) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ApiError(f'"{key}" must be a number') from None
 
 
 def parse_bool(value, key: str) -> bool:
@@ -309,6 +336,14 @@ def serialize_scan_snapshot(discovered):
     return result
 
 
+def find_scan_result(address: str):
+    normalized = address.strip().lower()
+    for item in last_scan_results:
+        if item["address"].lower() == normalized:
+            return item
+    raise ApiError(f"Device {address} not found in latest scan results", status_code=404)
+
+
 def clear_notification_buffers(uuid: str | None = None):
     with notification_lock:
         if uuid is None:
@@ -387,7 +422,7 @@ def get_connection_state():
         "scan_results_count": len(last_scan_results),
         "connected": connected,
         "address": connected_device_address,
-        "notify_enabled": sorted(notification_handlers.keys()),
+        "notify_enabled": sorted(str(key) for key in notification_handlers.keys()),
         "latest_event_id": get_latest_event_id(),
     }
 
@@ -425,14 +460,76 @@ def start_event_loop():
 threading.Thread(target=start_event_loop, daemon=True).start()
 
 
+@app.before_request
+def handle_cors_preflight():
+    if request.method == "OPTIONS" and request.path.startswith("/api"):
+        return "", 204
+    return None
+
+
+@app.after_request
+def add_api_cors_headers(response):
+    if request.path.startswith("/api"):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
+
 @app.errorhandler(ApiError)
 def handle_api_error(exc: ApiError):
     return jsonify({"ok": False, "error": exc.message}), exc.status_code
 
 
+@app.errorhandler(HTTPException)
+def handle_http_error(exc: HTTPException):
+    if request.path.startswith("/api"):
+        return jsonify({"ok": False, "error": exc.description}), exc.code
+    return exc
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(exc: Exception):
+    if request.path.startswith("/api"):
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    raise exc
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/api")
+def api_index():
+    return json_ok({
+        "service": "ble-debugger",
+        "access": "open",
+        "state": get_connection_state(),
+        "endpoints": {
+            "health": "GET /api/health",
+            "state": "GET /api/state",
+            "scan_start": "POST /api/scan/start",
+            "scan_stop": "POST /api/scan/stop",
+            "scan_run": "POST /api/scan/run",
+            "scan_results": "GET /api/scan/results",
+            "devices": "GET /api/devices",
+            "device": "GET /api/devices/<address>",
+            "connect": "POST /api/connect",
+            "disconnect": "POST /api/disconnect",
+            "services": "GET /api/services",
+            "read": "POST /api/read",
+            "write": "POST /api/write",
+            "notify": "POST /api/notify",
+            "read_descriptor": "POST /api/read_descriptor",
+            "events": "GET|DELETE /api/events",
+            "wait_event": "GET|POST /api/events/wait",
+            "exchange": "POST /api/exchange",
+            "command": "POST /api/command",
+            "reset": "POST /api/reset",
+        },
+    })
 
 
 @app.route("/api/health")
@@ -494,6 +591,25 @@ async def _do_scan():
             pass
 
 
+async def _collect_scan_snapshot(duration_s: float):
+    global scanner, last_scan_results
+    active_scanner = BleakScanner()
+    scanner = active_scanner
+    await active_scanner.start()
+    try:
+        await asyncio.sleep(duration_s)
+        last_scan_results = serialize_scan_snapshot(active_scanner.discovered_devices_and_advertisement_data)
+        socketio.emit("scan_results", {"devices": last_scan_results})
+        return last_scan_results
+    finally:
+        if scanner is active_scanner:
+            scanner = None
+        try:
+            await active_scanner.stop()
+        except Exception:
+            pass
+
+
 def _scan_loop():
     global scanning
     try:
@@ -523,6 +639,44 @@ def api_scan_stop():
 @app.route("/api/scan/results")
 def api_scan_results():
     return json_ok({"scanning": scanning, "devices": last_scan_results})
+
+
+@app.route("/api/devices")
+def api_devices():
+    return json_ok({"scanning": scanning, "devices": last_scan_results})
+
+
+@app.route("/api/devices/<path:address>")
+def api_device(address: str):
+    return json_ok(find_scan_result(address))
+
+
+@app.route("/api/scan/run", methods=["POST"])
+def api_scan_run():
+    global scanning
+    if scanning:
+        raise ApiError("Already scanning", status_code=409)
+
+    data = optional_json_body()
+    duration_s = require_float(
+        data.get("duration_s", data.get("timeout_s", request.args.get("duration_s", 5.0))),
+        "duration_s",
+    )
+    if duration_s <= 0 or duration_s > MAX_SYNC_SCAN_SECONDS:
+        raise ApiError(f'"duration_s" must be greater than 0 and at most {MAX_SYNC_SCAN_SECONDS}')
+
+    scanning = True
+    socketio.emit("scan_status", {"scanning": True})
+    try:
+        devices = run_async(_collect_scan_snapshot(duration_s), timeout=duration_s + 5)
+        return json_ok({
+            "scanning": False,
+            "duration_s": duration_s,
+            "devices": devices,
+        })
+    finally:
+        scanning = False
+        socketio.emit("scan_status", {"scanning": False})
 
 
 # --- Connection ---
@@ -692,6 +846,24 @@ def api_disconnect():
     return json_ok(disconnect_device())
 
 
+@app.route("/api/reset", methods=["POST"])
+def api_reset():
+    global scanning
+    if scanning:
+        scanning = False
+        socketio.emit("scan_status", {"scanning": False})
+        run_async(_stop_active_scanner())
+
+    if ble_client and ble_client.is_connected:
+        disconnect_device()
+    else:
+        clear_notification_buffers()
+        clear_recorded_events()
+        notification_handlers.clear()
+
+    return json_ok(get_connection_state())
+
+
 @app.route("/api/services")
 def api_services():
     client = ensure_connected_client()
@@ -703,12 +875,13 @@ def api_services():
 
 # --- Read / Write / Notify ---
 
-def read_characteristic(uuid: str):
+def read_characteristic(char_spec):
     client = ensure_connected_client()
     try:
-        value = run_async(client.read_gatt_char(uuid))
+        value = run_async(client.read_gatt_char(char_spec))
         return {
-            "uuid": uuid,
+            "uuid": str(char_spec),
+            "target": str(char_spec),
             "value": value.hex(),
             "text": decode_payload_text(bytes(value)),
             "timestamp": now_timestamp(),
@@ -723,18 +896,20 @@ def handle_read(data):
         result = read_characteristic(data["uuid"])
         emit("char_value", {
             **result,
+            "uuid": data["uuid"],
             "direction": "read",
         })
     except Exception as exc:
         emit("error", {"message": str(exc), "type": "read"})
 
 
-def write_characteristic(uuid: str, value_bytes: bytes, response: bool = True):
+def write_characteristic(char_spec, value_bytes: bytes, response: bool = True):
     client = ensure_connected_client()
     try:
-        run_async(client.write_gatt_char(uuid, value_bytes, response=response))
+        run_async(client.write_gatt_char(char_spec, value_bytes, response=response))
         return {
-            "uuid": uuid,
+            "uuid": str(char_spec),
+            "target": str(char_spec),
             "value": value_bytes.hex(),
             "text": decode_payload_text(value_bytes),
             "timestamp": now_timestamp(),
@@ -753,7 +928,7 @@ def handle_write(data):
             response=data.get("type", "with_response") == "with_response",
         )
         emit("write_ok", {
-            "uuid": result["uuid"],
+            "uuid": data["uuid"],
             "value": result["value"],
             "timestamp": result["timestamp"],
         })
@@ -761,27 +936,27 @@ def handle_write(data):
         emit("error", {"message": str(exc), "type": "write"})
 
 
-def set_notify(uuid: str, enable: bool):
+def set_notify(char_spec, enable: bool):
     client = ensure_connected_client()
     try:
         if enable:
-            if uuid in notification_handlers:
-                return {"uuid": uuid, "enabled": True}
+            if char_spec in notification_handlers:
+                return {"uuid": str(char_spec), "target": str(char_spec), "enabled": True}
 
-            clear_notification_buffers(uuid)
+            clear_notification_buffers(str(char_spec))
 
             def callback(sender: BleakGATTCharacteristic, value: bytearray):
                 handle_notification_payload(str(sender.uuid), bytes(value))
 
-            run_async(client.start_notify(uuid, callback))
-            notification_handlers[uuid] = callback
-            return {"uuid": uuid, "enabled": True}
+            run_async(client.start_notify(char_spec, callback))
+            notification_handlers[char_spec] = callback
+            return {"uuid": str(char_spec), "target": str(char_spec), "enabled": True}
 
-        if uuid in notification_handlers:
-            run_async(client.stop_notify(uuid))
-            notification_handlers.pop(uuid, None)
-        clear_notification_buffers(uuid)
-        return {"uuid": uuid, "enabled": False}
+        if char_spec in notification_handlers:
+            run_async(client.stop_notify(char_spec))
+            notification_handlers.pop(char_spec, None)
+        clear_notification_buffers(str(char_spec))
+        return {"uuid": str(char_spec), "target": str(char_spec), "enabled": False}
     except Exception as exc:
         raise ApiError(f"Notify toggle failed: {exc}", status_code=500) from exc
 
@@ -819,7 +994,7 @@ def handle_read_descriptor(data):
 @app.route("/api/read", methods=["POST"])
 def api_read():
     data = require_json_body()
-    return json_ok(read_characteristic(require_str(data, "uuid")))
+    return json_ok(read_characteristic(require_characteristic_spec(data)))
 
 
 @app.route("/api/write", methods=["POST"])
@@ -829,14 +1004,14 @@ def api_write():
     with_response = parse_bool(data.get("with_response", True), "with_response")
     value = require_str(data, "value")
     payload = encode_write_value(value, encoding)
-    return json_ok(write_characteristic(require_str(data, "uuid"), payload, response=with_response))
+    return json_ok(write_characteristic(require_characteristic_spec(data), payload, response=with_response))
 
 
 @app.route("/api/notify", methods=["POST"])
 def api_notify():
     data = require_json_body()
     enable = parse_bool(data.get("enable", True), "enable")
-    return json_ok(set_notify(require_str(data, "uuid"), enable))
+    return json_ok(set_notify(require_characteristic_spec(data), enable))
 
 
 @app.route("/api/read_descriptor", methods=["POST"])
@@ -865,6 +1040,37 @@ def api_events():
     return json_ok({
         "kind": kind,
         "events": get_recorded_events(kind, uuid=uuid, since_id=since_id, limit=limit),
+        "latest_event_id": get_latest_event_id(),
+    })
+
+
+@app.route("/api/events/wait", methods=["GET", "POST"])
+def api_wait_event():
+    if request.method == "POST":
+        data = optional_json_body()
+        kind_value = data.get("kind", "notification")
+        uuid = data.get("uuid")
+        after_id_value = data.get("after_id", data.get("since_id", 0))
+        timeout_ms_value = data.get("timeout_ms", 5000)
+    else:
+        kind_value = request.args.get("kind", "notification")
+        uuid = request.args.get("uuid")
+        after_id_value = request.args.get("after_id", request.args.get("since_id", 0))
+        timeout_ms_value = request.args.get("timeout_ms", 5000)
+
+    kind = normalize_event_kind(kind_value)
+    after_id = require_int(after_id_value, "after_id")
+    timeout_ms = require_int(timeout_ms_value, "timeout_ms")
+    if timeout_ms < 1 or timeout_ms > 60000:
+        raise ApiError('"timeout_ms" must be between 1 and 60000')
+
+    event = wait_for_event(kind, uuid, after_id, timeout_ms / 1000.0)
+    if event is None:
+        raise ApiError(f"Timed out waiting for {kind} event", status_code=504)
+
+    return json_ok({
+        "kind": kind,
+        "event": event,
         "latest_event_id": get_latest_event_id(),
     })
 
@@ -946,6 +1152,9 @@ def api_command():
 
 
 if __name__ == "__main__":
+    host = os.environ.get("BLE_DEBUGGER_HOST", "0.0.0.0")
+    port = int(os.environ.get("BLE_DEBUGGER_PORT", "5555"))
     print("\n  BLE Debugger starting...")
-    print("  Open http://localhost:5555 in your browser\n")
-    socketio.run(app, host="0.0.0.0", port=5555, debug=False, allow_unsafe_werkzeug=True)
+    print(f"  Open http://localhost:{port} in your browser")
+    print(f"  REST API is exposed on http://{host}:{port}/api\n")
+    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
