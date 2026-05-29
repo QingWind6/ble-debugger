@@ -72,6 +72,14 @@ python3 app.py
 
 Visit [http://localhost:5555](http://localhost:5555)
 
+The server listens on `0.0.0.0:5555` by default, so other local agents or machines on the same network can call the REST API. Override with:
+
+默认监听 `0.0.0.0:5555`，本机或同一网络中的 agent 可以直接调用 REST API。可通过环境变量修改：
+
+```bash
+BLE_DEBUGGER_HOST=0.0.0.0 BLE_DEBUGGER_PORT=5555 python3 app.py
+```
+
 ---
 
 ## Usage / 使用方法
@@ -97,35 +105,73 @@ Visit [http://localhost:5555](http://localhost:5555)
 
 ## REST API / 自动化接口
 
+The REST API is intentionally open for local automation: CORS is enabled for `/api/*`, and there is no authentication layer. Use it on a trusted network.
+
+REST API 面向本地自动化开放：`/api/*` 已启用 CORS，且没有鉴权层。建议只在可信网络中使用。
+
 All API responses use a common JSON envelope: `{ "ok": true, "result": ... }` for success and `{ "ok": false, "error": "..." }` for failures.
 
 所有接口成功时返回 `{ "ok": true, "result": ... }`，失败时返回 `{ "ok": false, "error": "..." }`。
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api` | API capability discovery for agents |
 | `GET` | `/api/health` | Health check and current state |
 | `GET` | `/api/state` | Scan, connection, notify, and event state |
 | `POST` | `/api/scan/start` | Start BLE scanning |
 | `POST` | `/api/scan/stop` | Stop BLE scanning |
+| `POST` | `/api/scan/run` | Run a blocking scan and return devices with advertisement details |
 | `GET` | `/api/scan/results` | Latest scan results with advertisement details |
+| `GET` | `/api/devices` | Alias for latest scan devices |
+| `GET` | `/api/devices/<address>` | Get one device from latest scan results |
 | `POST` | `/api/connect` | Connect to a BLE device by address |
 | `POST` | `/api/disconnect` | Disconnect current device |
+| `POST` | `/api/reset` | Stop scanning, disconnect, clear notification buffers and event history |
 | `GET` | `/api/services` | List GATT services for the connected device |
-| `POST` | `/api/read` | Read a characteristic |
-| `POST` | `/api/write` | Write HEX or text to a characteristic |
-| `POST` | `/api/notify` | Enable or disable notification / indication |
+| `POST` | `/api/read` | Read a characteristic by `uuid` or `handle` |
+| `POST` | `/api/write` | Write HEX or text to a characteristic by `uuid` or `handle` |
+| `POST` | `/api/notify` | Enable or disable notification / indication by `uuid` or `handle` |
 | `POST` | `/api/read_descriptor` | Read a descriptor by handle |
 | `GET` / `DELETE` | `/api/events` | Read or clear notification / frame events |
+| `GET` / `POST` | `/api/events/wait` | Long-poll until a notification or frame event arrives |
 | `POST` | `/api/exchange` | Write data and wait for a notification or frame |
 | `POST` | `/api/command` | Write a text command and wait for a notification frame |
 
-Example / 示例:
+Agent workflow example / Agent 调用示例:
 
 ```bash
+curl http://localhost:5555/api
+
+curl -X POST http://localhost:5555/api/scan/run \
+  -H 'Content-Type: application/json' \
+  -d '{"duration_s":5}'
+
+curl -X POST http://localhost:5555/api/connect \
+  -H 'Content-Type: application/json' \
+  -d '{"address":"AA:BB:CC:DD:EE:FF"}'
+
+curl http://localhost:5555/api/services
+
 curl -X POST http://localhost:5555/api/write \
   -H 'Content-Type: application/json' \
   -d '{"uuid":"0000xxxx-0000-1000-8000-00805f9b34fb","value":"48656c6c6f","encoding":"hex","with_response":true}'
+
+curl -X POST http://localhost:5555/api/read \
+  -H 'Content-Type: application/json' \
+  -d '{"handle":42}'
+
+curl -X POST http://localhost:5555/api/notify \
+  -H 'Content-Type: application/json' \
+  -d '{"uuid":"0000xxxx-0000-1000-8000-00805f9b34fb","enable":true}'
+
+curl 'http://localhost:5555/api/events/wait?kind=notification&timeout_ms=5000'
+
+curl -X POST http://localhost:5555/api/disconnect
 ```
+
+For duplicated GATT characteristic UUIDs, prefer the numeric `handle` returned by `/api/services`.
+
+遇到多个特征值 UUID 重复时，建议使用 `/api/services` 返回的数字 `handle` 操作。
 
 ---
 
